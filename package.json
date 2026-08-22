@@ -7,7 +7,8 @@
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
-    "./styles.css": "./styles/matrix.css"
+    "./styles.css": "./styles/matrix.css",
+    "./package.json": "./package.json"
   },
   "files": ["lib", "styles", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"],
   "scripts": {
