@@ -12,6 +12,8 @@
   "files": ["lib", "styles", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"],
   "scripts": {
     "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "prepack": "node scripts/build.mjs",
     "test": "node --test",
     "check": "node --check src/index.js && node --check src/client.js"
   },

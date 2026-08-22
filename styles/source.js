@@ -22,17 +22,25 @@ function installStyles() {
 }
 
 function reveal(row) {
+  if (!(row instanceof Element) || row.dataset.matrixUserCollapsed === 'true') return;
   row.classList.add('dsh-matrix-thinking');
   row.setAttribute('data-matrix-thinking', 'visible');
-  const toggles = row.querySelectorAll('[aria-expanded="false"]');
-  for (const toggle of toggles) {
-    if (toggle instanceof HTMLElement) toggle.click();
+  const control = row.querySelector('button[aria-expanded], [role="button"][aria-expanded]');
+  if (control instanceof HTMLElement && !control.dataset.matrixInteractionBound) {
+    control.dataset.matrixInteractionBound = 'true';
+    control.addEventListener('click', () => {
+      if (control.dataset.matrixPluginOpening !== 'true' && control.getAttribute('aria-expanded') === 'true') {
+        row.dataset.matrixUserCollapsed = 'true';
+      }
+    });
+  }
+  if (control instanceof HTMLElement && control.getAttribute('aria-expanded') === 'false') {
+    control.dataset.matrixPluginOpening = 'true';
+    control.click();
+    queueMicrotask(() => delete control.dataset.matrixPluginOpening);
   }
   const body = row.querySelector('[class*="thinkBody"]');
   if (body instanceof HTMLElement) {
-    body.setAttribute('tabindex', '0');
-    body.setAttribute('role', 'log');
-    body.setAttribute('aria-live', row.dataset.state === 'running' ? 'polite' : 'off');
     if (!body.dataset.matrixFollowBound) {
       body.dataset.matrixFollowBound = 'true';
       body.addEventListener('scroll', () => {
@@ -49,24 +57,33 @@ function scan(root = document) {
 }
 
 export function apply(ctx) {
-  const removeStyles = installStyles();
-  scan();
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        if (node instanceof Element) {
-          if (node.matches(ROW_SELECTOR)) reveal(node);
-          scan(node);
+  if (typeof document === 'undefined') return;
+  const start = () => {
+    if (!document.body) return;
+    const removeStyles = installStyles();
+    scan();
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) {
+            if (node.matches(ROW_SELECTOR)) reveal(node);
+            scan(node);
+          }
+        }
+        if (mutation.type === 'characterData' && mutation.target.parentElement) {
+          const row = mutation.target.parentElement.closest(ROW_SELECTOR);
+          if (row) reveal(row);
         }
       }
-      if (mutation.type === 'characterData' && mutation.target.parentElement) reveal(mutation.target.parentElement.closest(ROW_SELECTOR) ?? mutation.target.parentElement);
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-  ctx.effect(() => () => {
-    observer.disconnect();
-    removeStyles?.();
-  }, 'dsh-matrix-skin: cleanup');
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'data-state'] });
+    ctx.effect(() => () => {
+      observer.disconnect();
+      removeStyles?.();
+    }, 'dsh-matrix-skin: cleanup');
+  };
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start, { once: true });
 }
 
 const MATRIX_CSS = String.raw`
@@ -102,7 +119,6 @@ const MATRIX_CSS = String.raw`
   animation: dsh-matrix-glitch 7s steps(2,end) infinite;
 }
 [data-matrix-thinking="visible"] [class*="thinkBody"] {
-  display: block !important;
   max-height: min(48vh, 560px);
   overflow: auto;
   box-sizing: border-box;

@@ -57,27 +57,33 @@ function scan(root = document) {
 }
 
 export function apply(ctx) {
-  const removeStyles = installStyles();
-  scan();
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        if (node instanceof Element) {
-          if (node.matches(ROW_SELECTOR)) reveal(node);
-          scan(node);
+  if (typeof document === 'undefined') return;
+  const start = () => {
+    if (!document.body) return;
+    const removeStyles = installStyles();
+    scan();
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) {
+            if (node.matches(ROW_SELECTOR)) reveal(node);
+            scan(node);
+          }
+        }
+        if (mutation.type === 'characterData' && mutation.target.parentElement) {
+          const row = mutation.target.parentElement.closest(ROW_SELECTOR);
+          if (row) reveal(row);
         }
       }
-      if (mutation.type === 'characterData' && mutation.target.parentElement) {
-        const row = mutation.target.parentElement.closest(ROW_SELECTOR);
-        if (row) reveal(row);
-      }
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-  ctx.effect(() => () => {
-    observer.disconnect();
-    removeStyles?.();
-  }, 'dsh-matrix-skin: cleanup');
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'data-state'] });
+    ctx.effect(() => () => {
+      observer.disconnect();
+      removeStyles?.();
+    }, 'dsh-matrix-skin: cleanup');
+  };
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start, { once: true });
 }
 
 const MATRIX_CSS = String.raw`
