@@ -1,0 +1,32 @@
+{
+  "name": "dsh-matrix-skin",
+  "version": "0.1.0",
+  "description": "Matrix-inspired DSH Web skin that visibly streams provider-supplied reasoning text.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./styles.css": "./styles/matrix.css"
+  },
+  "files": ["lib", "styles", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "check": "node --check src/index.js && node --check src/client.js"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/emeryxu1-blip/dsh-matrix-skin.git" },
+  "bugs": { "url": "https://github.com/emeryxu1-blip/dsh-matrix-skin/issues" },
+  "license": "MIT",
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-conversation"],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6"
+  }
+}
