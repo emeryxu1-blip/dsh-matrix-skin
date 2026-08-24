@@ -47,6 +47,34 @@ test('composer paints draft text once through the backdrop layer', () => {
   }
 });
 
+test('sent and pending prompts decorate only the native bubble', () => {
+  const cssRules = [...matrixCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const [, surfaceSelectors = '', surfaceDeclarations = ''] = cssRules.find(([, selectors]) => (
+    selectors.includes('[class*="_userStack"] > [class*="_bubble"]')
+  )) ?? [];
+  assert.deepEqual(surfaceSelectors.split(',').map((selector) => selector.trim()), [
+    'body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"]',
+    'body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"]',
+    'body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] > [class*="_bubble"]',
+  ]);
+  assert.match(surfaceDeclarations, /border:\s*1px solid rgba\(114,\s*255,\s*226,\s*\.26\);/);
+  assert.match(surfaceDeclarations, /background:\s*#06100b\s*!important;/);
+  assert.match(surfaceDeclarations, /border-radius:\s*3px 15px 3px 15px\s*!important;/);
+
+  for (const [rule, selectors, declarations] of cssRules) {
+    const targetsBareStack = selectors.split(',').some((selector) => (
+      /\[class\*="_userStack"\]\s*$/.test(selector.trim())
+    ));
+    if (targetsBareStack) {
+      assert.doesNotMatch(
+        declarations,
+        /(?:^|;)\s*(?:border(?:-[\w-]+)?|background(?:-[\w-]+)?|box-shadow)\s*:/,
+        `${rule.trim()} must remain a layout-only wrapper`,
+      );
+    }
+  }
+});
+
 test('preserves provider-supplied reasoning verbatim', () => {
   const text = '线路分析\nconst x = "<safe>";\n✓';
   assert.equal(normalizeThinkingText(text), text);

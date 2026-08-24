@@ -144,10 +144,11 @@ body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] code {
   border-color: rgba(67,255,145,.13);
   background-color: #07100b;
 }
-body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"],
-body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"],
-body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] {
+body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"],
+body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"],
+body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] > [class*="_bubble"] {
   color: #eafff2 !important;
+  box-sizing: border-box;
   border: 1px solid rgba(114, 255, 226, .26);
   border-radius: 3px 15px 3px 15px !important;
   background: #06100b !important;
