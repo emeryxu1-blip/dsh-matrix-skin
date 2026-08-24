@@ -2,37 +2,89 @@
 
 [English](README.md) | 中文
 
-这是一个面向 **DeepSeek Harness（DSH）Web 界面**的霓虹绿 Matrix / 黑客风皮肤插件。它会把现有的助手 **Think（思考）** 行变成可读的终端面板，自动展开面板，在模型输出过程中持续显示 DSH 实际收到的 reasoning 文本，并加入轻量的代码滚动视觉效果。
+> 把 DeepSeek Harness 变成专注、利落的黑色终端控制台。
 
-> **重要边界：** 本插件只能显示模型/提供商实际发送给 DSH 的 reasoning 文本。对于提供商没有发送、主动省略、脱敏或不公开的隐藏思维链，插件无法恢复；插件不会编造或改写文本。
+**DSH Matrix Skin** 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web 界面带来鲜明的 Matrix 黑客风格，同时保持对话清晰、操作自然。平坦的近黑色界面、克制的霓虹信号、更清晰的 Think 面板，以及实时「神经代码雨」，让每个会话都像正在运行的系统，而不是普通聊天窗口。
 
-## 功能
+代码雨不是循环播放的固定动画：当前会话中最新的用户文本、助手回复、流式输出，以及提供商实际公开的 reasoning 都会在本地成为视觉信号。对于全新的空白 DSH，插件会先使用 DeepSeek Harness 官方 README 作为初始文本源。
 
-- 只针对 reasoning 行（`data-variant="think"`）应用 Matrix 终端样式。
-- 自动展开 Think 行，让已记录的完整 reasoning 块默认可见。
-- 当读者仍停留在底部时跟随流式尾部；用户手动滚动后尊重阅读位置。
-- 保留原始多行、Unicode 和类似代码的内容，仍然是可选择的普通文本。
-- 支持减少动态效果设置，并为超长输出提供有上限的滚动区域。
-- 插件不会向外发送提供商密钥、提示词或会话内容。
+## 亮点
 
-## 安装
+- 覆盖 Chat、Trajectory、侧边栏、工具和输入区的完整黑客风界面
+- 使用最新的已完成、流式、排队和 steering 文本驱动 Matrix 代码雨
+- 为 DSH 原生 Think 行提供清晰的终端阅读体验
+- 支持减少动态效果，reasoning 仍然可选择、可复制、可访问
+- 仅在本地处理，不包含遥测，也不会向外上传会话内容
 
-需要 DSH `0.1.0-rc.6`，或兼容 profile bundle / client plugin 合约的版本。
+> 插件只能显示模型提供商实际发送给 DSH 的 reasoning，无法恢复隐藏、脱敏或未公开的思维链。
+
+## 环境要求
+
+- DeepSeek Harness `0.1.0-rc.6`，或使用相同 Web client-plugin 合约的兼容版本
+- DSH 的 `web` profile
+
+## 安装并启用
 
 ```bash
-dsh plugin --profile web add github:emeryxu1-blip/dsh-matrix-skin
+dsh plugin --profile web add -w github:emeryxu1-blip/dsh-matrix-skin
 dsh web
 ```
 
-安装后刷新现有的 DSH Web 页面。如果 GitHub 安装时 pnpm 根据安全策略要求批准构建脚本，请按 pnpm 提示操作；本包没有原生依赖，也不需要构建脚本。
+安装会自动启用皮肤。DSH Web 启动后，打开页面或强制刷新即可。仓库已经包含构建后的客户端文件，安装时不需要额外执行构建脚本。
 
-卸载：
+## 使用
+
+像平时一样使用 DSH 即可，无需配置插件。
+
+1. 使用 `dsh web` 启动 DSH Web。
+2. 选择或创建一个会话。
+3. 正常聊天；代码雨会自动读取最新的本地会话文本。
+4. 展开 DSH 原生的 **Think** 行，即可使用终端风格的 reasoning 阅读区域。
+
+如果会话确实是全新且空白的，代码雨会先使用 DSH 官方 README，直到会话中出现对话文本。
+
+## 验证
+
+确认插件已经安装：
 
 ```bash
-dsh plugin --profile web remove dsh-matrix-skin
+dsh plugin --profile web why dsh-matrix-skin
 ```
 
-然后重启或刷新 DSH Web。
+确认插件层已经启用：
+
+```bash
+dsh --profile web --dump-config
+```
+
+在输出中查找 `dsh-matrix-skin` 层和 `matrix-skin` 条目。在 DSH Web 中打开 **Settings → Plugins → Plugin list**，搜索 `matrix-skin`，确认状态为 **Mounted, Enabled**。
+
+## 暂时停用
+
+把下面的条目追加到 `~/.dsh/profiles/web/cordis.patch.yml` 现有的顶层数组中；如果设置了 `DSH_HOME`，则使用 `$DSH_HOME/profiles/web/cordis.patch.yml`：
+
+```yaml
+- id: matrix-skin
+  disabled: true
+```
+
+不要覆盖 profile patch 文件中的其他内容。重启 `dsh web` 并强制刷新浏览器后，插件列表会显示 `matrix-skin — Disabled`。
+
+## 重新启用
+
+删除上面的 `matrix-skin` 覆盖条目，重启 `dsh web`，然后强制刷新。插件会恢复 bundle 的默认启用状态。
+
+## 更新或卸载
+
+```bash
+# 更新
+dsh plugin --profile web update -w dsh-matrix-skin
+
+# 卸载
+dsh plugin --profile web remove -w dsh-matrix-skin
+```
+
+执行任一操作后，请重启 DSH Web 并强制刷新。卸载前请先删除临时的 `matrix-skin` 覆盖条目。
 
 ## 本地开发
 
@@ -44,32 +96,18 @@ npm run check
 npm run build
 ```
 
-从当前 checkout 安装到本地 Web profile：
+把当前 checkout 安装到 Web profile：
 
 ```bash
-dsh plugin --profile web add .
-dsh web
+dsh plugin --profile web add -w "$PWD"
 ```
 
-只有在 DeepSeek Harness checkout 中已经运行 Web watcher（`pnpm run dev:web`）并且它确实重建 client bundle 时，DSH 的 client HMR receiver 才会自动加载修改。否则请执行 `npm run build`，按需重建受影响的 Web 构件，然后刷新 `http://127.0.0.1:3080`。
+## 隐私
 
-## 自定义
+插件只读取 DSH 的内存会话快照，并且只在内存中保留派生的代码雨字符缓冲区。它没有网络 client、遥测、持久化存储、凭据访问或模型请求拦截逻辑。
 
-视觉样式位于 `src/client.js` 的 `MATRIX_CSS` 中。你可以 fork 仓库并修改 CSS 变量、终端高度、绿/青配色或动画。请保持选择器位于 `[data-matrix-thinking="visible"]` 之下，避免影响其他 DSH surface。若想恢复紧凑的默认 Think 展示，可移除本插件；本插件默认选择显示完整 reasoning。
-
-## 无障碍与隐私
-
-Reasoning 仍然是文本，而不是 canvas，也不会用不可读的随机字符替换原文。用户可以选择、复制，浏览器工具可以搜索，辅助技术也能读取。面板使用 `role="log"`；只有流式输出期间使用 `aria-live="polite"`。`prefers-reduced-motion: reduce` 会关闭装饰性动画。当读者离开底部后，焦点/滚动交互会停止强制跟随尾部。
-
-本插件是本地浏览器展示层，没有网络 client、遥测、凭据访问或模型请求拦截逻辑。
-
-## 兼容性与排障
-
-- **没有 Matrix 样式：** 确认包已经出现在 Web profile 的 `dsh.profile.bundles` 中，重启 `dsh web` 并强制刷新浏览器。
-- **没有 reasoning 面板：** 当前 provider 可能没有发送 reasoning block；DSH 无法显示从未到达的内容。
-- **安装后没有激活：** 执行 `dsh plugin --profile web update dsh-matrix-skin`，并使用 DSH 的 config dump 选项检查组合后的 profile。
-- **DSH 版本过旧或过新：** 本插件依赖稳定的 `data-variant="think"` 标记和 `dsh.client` Web roster。若未来版本改变该公共标记，请固定兼容版本或提交 issue。
+DSH Matrix Skin 是独立的社区插件，并非 DeepSeek 官方产品。
 
 ## 许可证
 
-MIT，详见 [LICENSE](LICENSE)。
+[MIT](LICENSE)

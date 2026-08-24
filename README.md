@@ -2,37 +2,89 @@
 
 English | [中文](README.zh.md)
 
-A neon-green Matrix / hacker skin for the **DeepSeek Harness (DSH) Web UI**. It turns the existing assistant **Think** row into a readable terminal panel, automatically opens it, keeps provider-supplied reasoning text visible while it streams, and adds a lightweight scrolling-code aesthetic.
+> Turn DeepSeek Harness into a focused, black-terminal command deck.
 
-> **Important boundary:** this plugin displays reasoning text that the model/provider actually sends to DSH. It cannot recover hidden chain-of-thought that a provider omits, redacts, or does not expose. It never invents or transforms the text.
+**DSH Matrix Skin** gives the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI a sharp Matrix-inspired identity without getting in the way of real work. Flat near-black surfaces, restrained neon signals, clearer Think panels, and live neural rain make every session feel like an active system rather than another generic chat window.
 
-## Features
+The rain is not a canned loop: it is built locally from the newest user text, assistant replies, streaming output, and provider-exposed reasoning in the active session. A brand-new empty DSH starts with the official DeepSeek Harness README as its initial signal.
 
-- Matrix terminal styling scoped to reasoning rows (`data-variant="think"`).
-- Automatically opens Think rows so the complete recorded reasoning block is visible.
-- Streaming-tail follow while the viewer remains at the bottom; manual scrolling is respected.
-- Preserves exact multiline, Unicode, and code-like text as ordinary selectable DOM text.
-- Reduced-motion support and a bounded reasoning scrollport for long output.
-- No provider credentials, prompts, or session content are sent anywhere by the plugin.
+## Highlights
 
-## Install
+- Full-shell hacker aesthetic for Chat, Trajectory, the sidebar, tools, and composer
+- Matrix rain powered by the newest finalized, streaming, queued, and steering text
+- Readable terminal treatment for DSH's native Think rows
+- Reduced-motion support and selectable, accessible reasoning text
+- Local-only processing with no telemetry or session-content upload
 
-Requires DSH `0.1.0-rc.6` or a compatible release with the profile-bundle/client-plugin contract.
+> The plugin can display only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable chain-of-thought.
+
+## Requirements
+
+- DeepSeek Harness `0.1.0-rc.6`, or a compatible release using the same Web client-plugin contract
+- The `web` DSH profile
+
+## Install and enable
 
 ```bash
-dsh plugin --profile web add github:emeryxu1-blip/dsh-matrix-skin
+dsh plugin --profile web add -w github:emeryxu1-blip/dsh-matrix-skin
 dsh web
 ```
 
-After installation, refresh the existing DSH Web page. A GitHub install may require pnpm to approve a build script if your pnpm policy asks for it; this package has no native dependencies or required build scripts.
+Installation enables the skin automatically. Open or hard-refresh the DSH Web UI after it starts. The repository ships its built client artifacts, so installation does not require a post-install build.
 
-Remove it with:
+## Use
+
+Use DSH normally—no plugin configuration is required.
+
+1. Start DSH Web with `dsh web`.
+2. Select or create a session.
+3. Chat as usual; the Matrix feed updates from the newest local session text.
+4. Expand a native **Think** row to use the terminal-style reasoning viewer.
+
+If the session is truly new and empty, the rain uses the official DSH README until conversation text exists.
+
+## Verify
+
+Confirm the package is installed:
 
 ```bash
-dsh plugin --profile web remove dsh-matrix-skin
+dsh plugin --profile web why dsh-matrix-skin
 ```
 
-Then restart/refresh DSH Web.
+Confirm its bundle layer is active:
+
+```bash
+dsh --profile web --dump-config
+```
+
+Look for the `dsh-matrix-skin` layer and its `matrix-skin` entry. In DSH Web, open **Settings → Plugins → Plugin list**, search for `matrix-skin`, and check that it says **Mounted, Enabled**.
+
+## Temporarily disable
+
+Append this entry to the existing top-level array in `~/.dsh/profiles/web/cordis.patch.yml` (or `$DSH_HOME/profiles/web/cordis.patch.yml` when `DSH_HOME` is set):
+
+```yaml
+- id: matrix-skin
+  disabled: true
+```
+
+Do not replace the rest of the profile patch file. Restart `dsh web` and hard-refresh the browser. The plugin inventory will show `matrix-skin — Disabled`.
+
+## Re-enable
+
+Delete the `matrix-skin` override above, restart `dsh web`, and hard-refresh. The bundle's default enabled state returns.
+
+## Update or uninstall
+
+```bash
+# Update
+dsh plugin --profile web update -w dsh-matrix-skin
+
+# Uninstall
+dsh plugin --profile web remove -w dsh-matrix-skin
+```
+
+Restart DSH Web and hard-refresh after either command. Remove any temporary `matrix-skin` override before uninstalling.
 
 ## Development
 
@@ -44,32 +96,18 @@ npm run check
 npm run build
 ```
 
-For a local profile install from the checkout:
+Install the checkout into your Web profile with:
 
 ```bash
-dsh plugin --profile web add .
-dsh web
+dsh plugin --profile web add -w "$PWD"
 ```
 
-The client HMR receiver only reloads rebuilt client bundles when DSH's Web watcher (`pnpm run dev:web` in the DeepSeek Harness checkout) is already running. Otherwise run `npm run build`, restart/rebuild the affected Web artifacts as appropriate, and refresh `http://127.0.0.1:3080`.
+## Privacy
 
-## Customization
+The plugin reads DSH's in-memory session snapshot and keeps its derived rain buffer in memory only. It has no network client, telemetry, storage, credential access, or model-request interception.
 
-The visual layer is in `src/client.js` (`MATRIX_CSS`). Fork the repository and adjust the CSS variables, terminal height, green/cyan palette, or animation. Keep selectors scoped under `[data-matrix-thinking="visible"]` so other DSH surfaces remain untouched. Users who need compact behavior can remove the plugin; the plugin intentionally defaults to visible reasoning.
-
-## Accessibility and privacy
-
-Reasoning remains text, not a canvas or an unreadable character animation. It can be selected, copied, searched by browser tools, and read by assistive technology. The panel uses `role="log"` and `aria-live="polite"` only for a running stream, and `prefers-reduced-motion: reduce` disables decorative animation. Focus/scroll interaction stops forced tail-follow when the reader moves away from the bottom.
-
-The plugin is a local browser presentation layer. It has no network client, telemetry, credential access, or model-request interception.
-
-## Compatibility and troubleshooting
-
-- **No Matrix styling:** confirm the package is listed in the Web profile's `dsh.profile.bundles`, restart `dsh web`, and hard-refresh the browser.
-- **No reasoning panel:** the selected provider may not send a reasoning block. DSH cannot display content that never arrived.
-- **Install does not activate:** run `dsh plugin --profile web update dsh-matrix-skin`; inspect the composed profile with DSH's config dump options.
-- **Older/newer DSH:** the plugin relies on the stable `data-variant="think"` marker and the `dsh.client` Web roster. If a future DSH release changes that public marker, pin a compatible release or open an issue.
+DSH Matrix Skin is an independent community plugin and is not an official DeepSeek product.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE)

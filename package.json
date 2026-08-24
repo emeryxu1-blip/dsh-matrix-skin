@@ -1,7 +1,24 @@
 {
   "name": "dsh-matrix-skin",
   "version": "0.1.0",
-  "description": "Matrix-inspired DSH Web skin that visibly streams provider-supplied reasoning text.",
+  "description": "Black-first Matrix hacker skin for DeepSeek Harness (DSH) Web with session-powered code rain and readable provider reasoning.",
+  "homepage": "https://github.com/emeryxu1-blip/dsh-matrix-skin#readme",
+  "author": "Gavin Xu",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "dsh-skin",
+    "matrix",
+    "matrix-rain",
+    "hacker-theme",
+    "web-ui",
+    "theme",
+    "skin",
+    "reasoning",
+    "ai-agents"
+  ],
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -13,7 +30,6 @@
   "files": ["lib", "styles", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "prepare": "node scripts/build.mjs",
     "prepack": "node scripts/build.mjs",
     "test": "node --test",
     "check": "node --check src/index.js && node --check src/client.js"
