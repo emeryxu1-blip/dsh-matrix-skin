@@ -47,6 +47,17 @@ test('composer paints draft text once through the backdrop layer', () => {
   }
 });
 
+test('code blocks do not paint a redundant backdrop behind their text', () => {
+  assert.doesNotMatch(
+    matrixCss,
+    /\[data-chat-flow-kind="assistant-step"\]\s+code\s*\{[^}]*background(?:-color)?\s*:/s,
+  );
+  assert.match(
+    matrixCss,
+    /\[data-chat-flow-kind="assistant-step"\]\s+:not\(pre\)\s*>\s*code\s*\{[^}]*background-color:\s*#07100b;/s,
+  );
+});
+
 test('sent and pending prompts decorate only the native bubble', () => {
   const cssRules = [...matrixCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
   const [, surfaceSelectors = '', surfaceDeclarations = ''] = cssRules.find(([, selectors]) => (

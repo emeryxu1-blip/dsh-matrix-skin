@@ -773,6 +773,8 @@ body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] :is(code, pre
 body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] code {
   color: #9dffc2;
   border-color: rgba(67,255,145,.13);
+}
+body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] :not(pre) > code {
   background-color: #07100b;
 }
 body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"],
