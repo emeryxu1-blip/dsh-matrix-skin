@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import {
   OFFICIAL_DSH_README_FALLBACK,
   bindSessionFeed,
@@ -15,8 +16,35 @@ import {
   splitMatrixGraphemes,
 } from '../src/client.js';
 
+const clientSource = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8');
+const matrixCss = clientSource.match(/const MATRIX_CSS = String\.raw`([\s\S]*?)`;\s*$/)?.[1] ?? '';
+
 test('client requests only the local sessions snapshot service', () => {
   assert.deepEqual(inject, ['sessions']);
+});
+
+test('composer paints draft text once through the backdrop layer', () => {
+  assert.doesNotMatch(matrixCss, /:is\(button, input, textarea,/);
+  assert.doesNotMatch(matrixCss, /:is\(textarea, input, \[contenteditable="true"\]\)/);
+  assert.match(
+    matrixCss,
+    /\[data-input-backdrop\]\s*\{[^}]*color:\s*var\(--dsh-matrix-bright\)\s*!important;/s,
+  );
+  assert.match(
+    matrixCss,
+    /\[data-input-scroll\] textarea\s*\{[^}]*color:\s*transparent\s*!important;[^}]*caret-color:\s*var\(--dsh-matrix-green\);/s,
+  );
+  const textareaRules = [...matrixCss.matchAll(/([^{}]*textarea[^{}]*)\{([^{}]*)\}/g)]
+    .filter(([, selector]) => !selector.includes('::placeholder'));
+  assert.ok(textareaRules.length > 0);
+  for (const [, selector, declarations] of textareaRules) {
+    assert.doesNotMatch(declarations, /font-family\s*:/, `${selector.trim()} must preserve native layer metrics`);
+    const colors = [...declarations.matchAll(/(?:^|;)\s*color:\s*([^;]+)/g)];
+    assert.ok(
+      colors.every(([, value]) => value.trim().startsWith('transparent')),
+      `${selector.trim()} must not paint textarea text`,
+    );
+  }
 });
 
 test('preserves provider-supplied reasoning verbatim', () => {
