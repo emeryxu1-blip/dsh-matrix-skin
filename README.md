@@ -6,15 +6,15 @@ English | [中文](README.zh.md)
 
 **DSH Matrix Skin** gives the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI a sharp Matrix-inspired identity without getting in the way of real work. Flat near-black surfaces, restrained neon signals, clearer Think panels, and live neural rain make every session feel like an active system rather than another generic chat window.
 
-The rain stays intentionally lightweight: it starts from a small built-in local glyph pool, then uses live DOM text activity to cheaply seed and nudge its visual variation. It does not scan, copy, retain, or subscribe to DSH session history.
+The rain is not a canned loop: it is built locally from the newest user text, assistant replies, streaming output, and provider-exposed reasoning in the active session. A brand-new empty DSH starts with the official DeepSeek Harness README as its initial signal.
 
 ## Highlights
 
 - Full-shell hacker aesthetic for Chat, Trajectory, the sidebar, tools, and composer
-- Lightweight Matrix rain from a small built-in local glyph pool, seeded and nudged by live DOM text activity
+- Matrix rain powered by the newest finalized, streaming, queued, and steering text
 - Readable terminal treatment for DSH's native Think rows
 - Reduced-motion support and selectable, accessible reasoning text
-- No session-history scanning, copying, retention, or subscription—and no telemetry or content upload
+- Local-only processing with no telemetry or session-content upload
 
 > The plugin can display only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable chain-of-thought.
 
@@ -38,8 +38,10 @@ Use DSH normally—no plugin configuration is required.
 
 1. Start DSH Web with `dsh web`.
 2. Select or create a session.
-3. Chat as usual; live text activity already rendered on the page lightly varies the Matrix rain.
+3. Chat as usual; the Matrix feed updates from the newest local session text.
 4. Expand a native **Think** row to use the terminal-style reasoning viewer.
+
+If the session is truly new and empty, the rain uses the official DSH README until conversation text exists.
 
 ## Verify
 
@@ -102,7 +104,7 @@ dsh plugin --profile web add -w "$PWD"
 
 ## Privacy
 
-The rain starts from a small built-in local glyph pool and reacts cheaply to live DOM text activity to seed or nudge visual variation. It does not scan, copy, retain, or subscribe to DSH session history. The plugin has no network client, telemetry, persistent storage, credential access, or model-request interception.
+The plugin reads DSH's in-memory session snapshot and keeps its derived rain buffer in memory only. It has no network client, telemetry, storage, credential access, or model-request interception.
 
 DSH Matrix Skin is an independent community plugin and is not an official DeepSeek product.
 

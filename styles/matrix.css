@@ -265,6 +265,9 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(0deg, rgba(84,255,145,.025) 0 1px, transparent 1px 4px);
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent 36%, transparent 64%, #000);
+  mask-image: linear-gradient(90deg, #000, transparent 36%, transparent 64%, #000);
+  mix-blend-mode: screen;
 }
 .dsh-matrix-environment::after {
   content: none;
@@ -275,9 +278,15 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   width: 100%;
   height: 100%;
   opacity: .3;
+  filter: drop-shadow(0 0 5px rgba(65,255,137,.72));
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
 }
-.dsh-matrix-environment[data-suspended="true"] .dsh-matrix-rain,
-.dsh-matrix-environment[data-suspended="true"] .dsh-matrix-hud {
+body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-rain {
+  opacity: .08;
+}
+body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-hud {
   display: none;
 }
 .dsh-matrix-hud {
@@ -344,6 +353,10 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   background: currentColor;
   box-shadow: 0 0 9px currentColor;
   animation: dsh-matrix-hud-blink 1.8s steps(2, end) infinite;
+}
+.dsh-matrix-environment[data-matrix-source="readme"] .dsh-matrix-hud__status,
+.dsh-matrix-environment[data-matrix-source="idle"] .dsh-matrix-hud__status {
+  color: rgba(122,203,154,.72);
 }
 [data-matrix-thinking="visible"] {
   position: relative;
@@ -434,6 +447,7 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
     var(--dsh-matrix-bg);
   font: 500 13px/1.72 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: .012em;
+  text-shadow: 0 0 8px rgba(67,255,145,.38);
   white-space: pre-wrap;
   word-break: break-word;
   caret-color: var(--dsh-matrix-bright);
@@ -485,6 +499,12 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
     0 0 42px rgba(38,255,116,.16),
     inset 0 1px rgba(192,255,217,.06);
 }
+[data-matrix-thinking="visible"][data-state="running"] [class*="thinkBody"] {
+  animation: dsh-matrix-pulse 2.2s ease-in-out infinite;
+}
+@keyframes dsh-matrix-pulse {
+  50% { box-shadow: inset 0 0 26px rgba(67,255,145,.075); }
+}
 @keyframes dsh-matrix-status {
   0%, 100% { opacity: .66; }
   50% { opacity: 1; }
@@ -500,6 +520,7 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
 @media (prefers-reduced-motion: reduce) {
   .dsh-matrix-rain { opacity: .22; }
   .dsh-matrix-hud__status::before,
+  [data-matrix-thinking="visible"] [class*="thinkBody"],
   [data-matrix-thinking="visible"]::before,
   [data-matrix-thinking="visible"]::after { animation: none !important; }
   [data-matrix-thinking="visible"]::after { display: none; }
@@ -512,6 +533,8 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   .dsh-matrix-hud { display: none; }
   .dsh-matrix-rain {
     opacity: .24;
+    -webkit-mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
+    mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
   }
   [data-matrix-thinking="visible"] { margin-block: 12px; border-radius: 11px; }
   [data-matrix-thinking="visible"]::before { padding-inline: 24px 10px; font-size: 8px; letter-spacing: .12em; }
