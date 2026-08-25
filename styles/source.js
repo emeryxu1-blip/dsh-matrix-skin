@@ -1,232 +1,75 @@
-// Cordis injection names runtime services, not npm packages. The renderer is
-// still DOM-only, while the local sessions snapshot supplies the exact text
-// corpus without scraping, logging, persisting, or sending it anywhere.
-export const inject = ['sessions'];
+export const inject = [];
 
 const STYLE_ID = 'dsh-matrix-skin/styles';
 const ROW_SELECTOR = '[data-variant="think"]';
 const BODY_SELECTOR = '[class*="thinkBody"]';
+const TRAJECTORY_SELECTOR = '[aria-label="Trajectory toolbar"]';
 const ENVIRONMENT_ID = 'dsh-matrix-environment';
 const ACTIVE_CLASS = 'dsh-matrix-skin-active';
-const MATRIX_SECTION_LIMIT = 5600;
-const MATRIX_LATEST_SECTION_LIMIT = 1200;
-const MATRIX_HOT_WINDOW = 5000;
-const MATRIX_GLYPH_LIMIT = 32768;
-const MATRIX_GRAPHEME_SEGMENTER = typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
-  ? new Intl.Segmenter('und', { granularity: 'grapheme' })
-  : null;
-
-// Bundled from the official DeepSeek Harness README so a brand-new install has
-// a real, product-authored stream before the first conversation exists.
-export const OFFICIAL_DSH_README_FALLBACK = [
-  '# DeepSeek Harness',
-  '',
-  'English | [中文](README.zh.md)',
-  '',
-  'DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).',
-  '',
-  'It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).',
-  '',
-  '## Developer preview',
-  '',
-  'DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**',
-  '',
-  '## Run',
-  '',
-  '### Run from `npm`',
-  '',
-  'Install `Node.js`, then run:',
-  '',
-  '```sh',
-  'npx @deepseek-ai/dsh web',
-  '```',
-  '',
-  'The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).',
-  '',
-  '### Run from source',
-  '',
-  'To run from a repository checkout:',
-  '',
-  '```sh',
-  'git clone https://github.com/deepseek-ai/deepseek-harness.git',
-  'cd deepseek-harness',
-  'pnpm install',
-  'pnpm run build',
-  'pnpm dsh web',
-  '```',
-  '',
-  '## Community and support',
-  '',
-  '- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).',
-  '- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.',
-  '- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.',
-  '',
-  '## Contributing',
-  '',
-  'See [CONTRIBUTING.md](CONTRIBUTING.md).',
-  '',
-  '## Development',
-  '',
-  'Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).',
-  '',
-  'For agents, follow [AGENTS.md](AGENTS.md).',
-  '',
-  '## License',
-  '',
-  '[MIT](LICENSE)',
-  '',
-  'Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).',
-].join('\n');
+const INSTALLATION_KEY = Symbol.for('dsh-matrix-skin/installation');
+export const MATRIX_GLYPHS = '01{}[]()<>=+-*/\\|:;.,#@$%&ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+export const MATRIX_RENDER_LIMITS = Object.freeze({
+  maxDevicePixelRatio: 1,
+  pixelLimit: 2_500_000,
+  dimensionLimit: 2560,
+  framesPerSecond: 15,
+  centerStart: 0.31,
+  centerEnd: 0.69,
+});
+const MATRIX_FRAME_INTERVAL = 1000 / MATRIX_RENDER_LIMITS.framesPerSecond;
 
 export function normalizeThinkingText(value) {
   return typeof value === 'string' ? value : '';
 }
 
-export function normalizeMatrixText(value) {
-  if (typeof value !== 'string') return '';
-  return value
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
-    .replace(/[\u202a-\u202e\u2066-\u2069]/g, '')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+export function matrixActivitySeed(length, trailingCodeUnit = 0) {
+  if (!Number.isFinite(length)) return 0;
+  const size = Math.max(0, Math.floor(length));
+  if (!size) return 0;
+  const tail = Number.isFinite(trailingCodeUnit)
+    ? Math.floor(trailingCodeUnit) & 0xffff
+    : 0;
+  return (Math.imul(size, 0x9e3779b1) ^ tail) >>> 0;
 }
 
-function matrixGraphemes(value) {
-  if (!value) return [];
-  if (MATRIX_GRAPHEME_SEGMENTER) {
-    return [...MATRIX_GRAPHEME_SEGMENTER.segment(value)].map(({ segment }) => segment);
-  }
-  return Array.from(value);
+export function matrixCharacterDataSeed(node) {
+  const length = Number.isFinite(node?.length) ? Math.max(0, Math.floor(node.length)) : 0;
+  if (!length || typeof node.substringData !== 'function') return 0;
+  const trailing = node.substringData(length - 1, 1).charCodeAt(0);
+  return matrixActivitySeed(length, trailing);
 }
 
-function tailMatrixText(value, limit) {
-  const graphemes = matrixGraphemes(value);
-  return graphemes.length > limit ? graphemes.slice(-limit).join('') : value;
+export function isMatrixSideColumn(x, width) {
+  if (!Number.isFinite(x)) return false;
+  const safeWidth = Number.isFinite(width) ? Math.max(1, width) : 1;
+  return x <= safeWidth * MATRIX_RENDER_LIMITS.centerStart
+    || x >= safeWidth * MATRIX_RENDER_LIMITS.centerEnd;
 }
 
-function headMatrixText(value, limit) {
-  const graphemes = matrixGraphemes(value);
-  return graphemes.length > limit ? graphemes.slice(0, limit).join('') : value;
-}
-
-function uniqueMatrixText(values) {
-  const seen = new Set();
-  const normalized = [];
-  for (const value of Array.isArray(values) ? values : []) {
-    const text = normalizeMatrixText(value);
-    if (!text || text === '(tool call only)' || seen.has(text)) continue;
-    seen.add(text);
-    normalized.push(text);
-  }
-  return normalized;
-}
-
-export function composeMatrixText(sources = {}, fallback = OFFICIAL_DSH_README_FALLBACK) {
-  const sections = [
-    ['COGNITION', sources.thinking],
-    ['REASONING TRACE', sources.reasoning],
-    ['ASSISTANT', sources.assistant],
-    ['USER', sources.user],
-  ];
-  const latestFeed = [];
-  const recentFeed = [];
-  const seen = new Set();
-  for (const [label, values] of sections) {
-    const entries = uniqueMatrixText(values).filter((text) => {
-      if (seen.has(text)) return false;
-      seen.add(text);
-      return true;
-    });
-    if (!entries.length) continue;
-    const latest = tailMatrixText(entries.at(-1), MATRIX_LATEST_SECTION_LIMIT);
-    latestFeed.push(`// ${label} · LATEST\n${latest}`);
-    const recent = entries.slice(-8, -1).reverse();
-    if (recent.length) {
-      const recentText = recent
-        .map((text) => tailMatrixText(text, MATRIX_LATEST_SECTION_LIMIT))
-        .join('\n\n');
-      recentFeed.push(`// ${label} · RECENT\n${headMatrixText(recentText, MATRIX_SECTION_LIMIT)}`);
-    }
-  }
-  if (latestFeed.length) return [...latestFeed, ...recentFeed].join('\n\n');
-  if (sources.blank === true) {
-    return `// DSH OFFICIAL README · EMPTY SESSION FALLBACK\n${normalizeMatrixText(fallback)}`;
-  }
-  return '';
-}
-
-function contentBlockText(blocks) {
-  if (!Array.isArray(blocks)) return [];
-  return blocks
-    .filter((block) => block?.type === 'text')
-    .map((block) => normalizeMatrixText(block.text))
-    .filter(Boolean);
-}
-
-function assistantBlockText(blocks, kind) {
-  if (!Array.isArray(blocks)) return [];
-  return blocks
-    .filter((block) => block?.kind === kind)
-    .map((block) => normalizeMatrixText(block.text))
-    .filter(Boolean);
-}
-
-export function matrixSourcesFromSnapshot(snapshot) {
-  const sources = {
-    thinking: [],
-    reasoning: [],
-    assistant: [],
-    user: [],
-    blank: snapshot?.blank === true,
-  };
-  if (!snapshot || typeof snapshot !== 'object') return sources;
-  const durableSteering = new Set();
-
-  for (const node of Array.isArray(snapshot.nodes) ? snapshot.nodes : []) {
-    if (node?.kind === 'user') {
-      sources.user.push(...contentBlockText(node.content));
-      continue;
-    }
-    if (node?.kind === 'steering') {
-      if (node.messageId !== undefined) durableSteering.add(String(node.messageId));
-      sources.user.push(...contentBlockText(node.content));
-      continue;
-    }
-    if (node?.kind === 'assistant') {
-      sources.reasoning.push(...assistantBlockText(node.blocks, 'reasoning'));
-      sources.assistant.push(...assistantBlockText(node.blocks, 'text'));
-    }
-  }
-
-  if (snapshot.partial) {
-    sources.thinking.push(...assistantBlockText(snapshot.partial.blocks, 'reasoning'));
-    sources.assistant.push(...assistantBlockText(snapshot.partial.blocks, 'text'));
-  }
-
-  for (const item of Array.isArray(snapshot.queue) ? snapshot.queue : []) {
-    if (item?.placement !== 'steering' && item?.placement !== 'queued') continue;
-    if (item.messageId !== undefined && durableSteering.has(String(item.messageId))) continue;
-    sources.user.push(...contentBlockText(item.content));
-  }
-
-  return sources;
-}
-
-export function splitMatrixGraphemes(value) {
-  const text = normalizeMatrixText(value).replace(/\s/g, ' ');
-  return matrixGraphemes(text);
-}
-
-export function rebaseMatrixColumns(columns, feedLength, hotWindow = MATRIX_HOT_WINDOW) {
-  const length = Number.isFinite(feedLength) ? Math.max(0, Math.floor(feedLength)) : 0;
-  const windowLength = Math.min(length, Math.max(1, Math.floor(hotWindow)));
-  for (let index = 0; index < columns.length; index += 1) {
-    const phase = (index * 0.618033988749895) % 1;
-    columns[index].sourceOffset = windowLength ? Math.floor(phase * windowLength) : 0;
-  }
-  return columns;
+export function matrixCanvasScale(
+  width,
+  height,
+  devicePixelRatio,
+  pixelLimit = MATRIX_RENDER_LIMITS.pixelLimit,
+  dimensionLimit = MATRIX_RENDER_LIMITS.dimensionLimit,
+) {
+  const cssWidth = Number.isFinite(width) ? Math.max(1, width) : 1;
+  const cssHeight = Number.isFinite(height) ? Math.max(1, height) : 1;
+  const requested = Number.isFinite(devicePixelRatio)
+    ? Math.max(0.01, Math.min(devicePixelRatio, MATRIX_RENDER_LIMITS.maxDevicePixelRatio))
+    : 1;
+  const safePixelLimit = Number.isFinite(pixelLimit)
+    ? Math.max(1, pixelLimit)
+    : MATRIX_RENDER_LIMITS.pixelLimit;
+  const safeDimensionLimit = Number.isFinite(dimensionLimit)
+    ? Math.max(1, dimensionLimit)
+    : MATRIX_RENDER_LIMITS.dimensionLimit;
+  return Math.min(
+    requested,
+    Math.sqrt(safePixelLimit / (cssWidth * cssHeight)),
+    safeDimensionLimit / cssWidth,
+    safeDimensionLimit / cssHeight,
+  );
 }
 
 export function isAtScrollTail(element, threshold = 18) {
@@ -247,7 +90,7 @@ function installStyles() {
   return () => tag.remove();
 }
 
-function installEnvironment() {
+function installEnvironment(initialTrajectoryVisible = false) {
   if (document.getElementById(ENVIRONMENT_ID)) return;
 
   const environment = document.createElement('div');
@@ -267,10 +110,12 @@ function installEnvironment() {
   hudEyebrow.textContent = 'DSH // NEURAL RAIN';
   const hudSource = document.createElement('strong');
   hudSource.className = 'dsh-matrix-hud__source';
+  hudSource.textContent = 'LOCAL GLYPH CORE';
   const hudMetrics = document.createElement('span');
   hudMetrics.className = 'dsh-matrix-hud__metrics';
   const hudStatus = document.createElement('span');
   hudStatus.className = 'dsh-matrix-hud__status';
+  hudStatus.textContent = 'AMBIENT SIGNAL';
   hud.append(hudEyebrow, hudSource, hudMetrics, hudStatus);
   environment.appendChild(hud);
   document.body.appendChild(environment);
@@ -284,142 +129,205 @@ function installEnvironment() {
   }
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let animationFrame = 0;
+  let resizeFrame = 0;
+  let staticFrame = 0;
   let lastFrame = 0;
   let width = 0;
   let height = 0;
+  let ratio = 0;
   let fontSize = 16;
   let columns = [];
-  let feedText = '';
-  let feedGlyphs = [];
+  let sequenceOffset = 0;
+  let trajectoryVisible = Boolean(initialTrajectoryVisible);
+  let suspended;
+  let contextLost = false;
+
+  const isContextUnavailable = () => (
+    contextLost || context.isContextLost?.() === true
+  );
 
   const setHudText = (element, value) => {
     if (element.textContent !== value) element.textContent = value;
   };
   const glyphAt = (index) => {
-    if (!feedGlyphs.length) return '0';
-    const offset = ((index % feedGlyphs.length) + feedGlyphs.length) % feedGlyphs.length;
-    return feedGlyphs[offset];
-  };
-  const setSources = (sources = {}) => {
-    const text = composeMatrixText(sources);
-    const nextGlyphs = splitMatrixGraphemes(text);
-    const sourceCounts = ['thinking', 'reasoning', 'assistant', 'user']
-      .map((key) => uniqueMatrixText(sources[key]).length);
-    const dynamicCount = sourceCounts.reduce((total, count) => total + count, 0);
-    const live = dynamicCount > 0;
-    const fallback = !live && sources.blank !== false;
-    const sourceCount = live ? sourceCounts.filter(Boolean).length : fallback ? 1 : 0;
-    if (text !== feedText) {
-      feedText = text;
-      feedGlyphs = nextGlyphs.length > MATRIX_GLYPH_LIMIT
-        ? nextGlyphs.slice(0, MATRIX_GLYPH_LIMIT)
-        : nextGlyphs;
-      rebaseMatrixColumns(columns, feedGlyphs.length);
-      draw(performance.now());
-    }
-    environment.dataset.matrixSource = live ? 'session' : fallback ? 'readme' : 'idle';
-    setHudText(hudSource, live ? 'SESSION MEMORY BUS' : fallback ? 'OFFICIAL README FALLBACK' : 'SESSION TEXT PENDING');
-    setHudText(hudMetrics, `${feedGlyphs.length.toLocaleString()} GLYPHS · ${sourceCount} SOURCE${sourceCount === 1 ? '' : 'S'}`);
-    setHudText(hudStatus, live ? 'LIVE SIGNAL' : fallback ? 'STANDBY SEED' : 'NO TEXT SIGNAL');
+    const offset = ((index % MATRIX_GLYPHS.length) + MATRIX_GLYPHS.length) % MATRIX_GLYPHS.length;
+    return MATRIX_GLYPHS.charAt(offset);
   };
 
-  const resize = () => {
-    if (!context) return;
-    width = window.innerWidth;
-    height = window.innerHeight;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    fontSize = width < 640 ? 13 : 16;
-    canvas.width = Math.max(1, Math.floor(width * ratio));
-    canvas.height = Math.max(1, Math.floor(height * ratio));
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    const count = Math.ceil(width / fontSize);
-    columns = Array.from({ length: count }, (_, index) => ({
-      x: index * fontSize + fontSize / 2,
-      y: Math.random() * height - height,
-      speed: 34 + Math.random() * 62,
-      trail: 9 + Math.floor(Math.random() * 10),
-      sourceOffset: 0,
-      sourceStep: 1 + Math.floor(Math.random() * 3),
-    }));
-    rebaseMatrixColumns(columns, feedGlyphs.length);
-    draw(performance.now());
-  };
-
-  const draw = (time) => {
-    if (!context) return;
-    context.clearRect(0, 0, width, height);
-    if (!feedGlyphs.length) return;
+  const draw = () => {
+    if (suspended || isContextUnavailable() || width < 1 || height < 1) return;
+    context.globalCompositeOperation = 'destination-out';
+    context.fillStyle = 'rgba(0, 0, 0, .2)';
+    context.fillRect(0, 0, width, height);
+    context.globalCompositeOperation = 'source-over';
     context.font = `500 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
+    context.fillStyle = 'rgba(98, 255, 151, .82)';
 
     for (const column of columns) {
-      if (column.x > width * 0.31 && column.x < width * 0.69) continue;
+      if (column.y < -fontSize || column.y > height + fontSize) continue;
       const head = Math.floor(column.y / fontSize);
-      for (let offset = 0; offset < column.trail; offset += 1) {
-        const y = column.y - offset * fontSize;
-        if (y < -fontSize || y > height + fontSize) continue;
-        const strength = Math.pow(1 - offset / column.trail, 1.55);
-        context.fillStyle = offset === 0
-          ? 'rgba(210, 255, 231, .96)'
-          : `rgba(49, 255, 126, ${Math.max(0, strength * .72)})`;
-        const glyphIndex = column.sourceOffset + (head - offset) * column.sourceStep;
-        context.fillText(glyphAt(glyphIndex), column.x, y);
-      }
+      const glyphIndex = column.sourceOffset + head * column.sourceStep + sequenceOffset;
+      context.fillText(glyphAt(glyphIndex), column.x, column.y);
     }
   };
 
   const animate = (time) => {
-    if (document.hidden || reducedMotion.matches) {
+    if (suspended || reducedMotion.matches || isContextUnavailable()) {
       animationFrame = 0;
       return;
     }
-    if (time - lastFrame >= 42) {
-      const elapsed = Math.min((time - (lastFrame || time)) / 1000, 0.08);
+    if (!lastFrame || time - lastFrame >= MATRIX_FRAME_INTERVAL) {
+      const elapsed = lastFrame
+        ? Math.min((time - lastFrame) / 1000, 0.1)
+        : MATRIX_FRAME_INTERVAL / 1000;
       lastFrame = time;
       for (const column of columns) {
         column.y += column.speed * elapsed;
-        if (column.y - column.trail * fontSize > height) {
-          column.y = -Math.random() * height * 0.65;
-          column.speed = 34 + Math.random() * 62;
-          column.sourceOffset = (column.sourceOffset + column.trail * column.sourceStep + 17)
-            % Math.max(1, feedGlyphs.length);
+        if (column.y > height + fontSize) {
+          column.y = -fontSize - ((column.sourceOffset * 17 + sequenceOffset) % Math.max(1, height * 0.45));
+          column.sourceOffset = (column.sourceOffset + sequenceOffset + 17) % MATRIX_GLYPHS.length;
         }
       }
-      draw(time);
+      draw();
     }
     animationFrame = requestAnimationFrame(animate);
   };
 
-  const startAnimation = () => {
+  const stopAnimation = () => {
     cancelAnimationFrame(animationFrame);
     animationFrame = 0;
     lastFrame = 0;
+  };
+  const startAnimation = () => {
+    stopAnimation();
+    if (suspended || isContextUnavailable()) return;
     if (reducedMotion.matches) {
-      draw(performance.now());
+      draw();
       return;
     }
-    if (!document.hidden) animationFrame = requestAnimationFrame(animate);
+    animationFrame = requestAnimationFrame(animate);
   };
 
-  const handleVisibility = () => startAnimation();
+  const syncSuspended = () => {
+    const next = document.hidden || trajectoryVisible;
+    if (environment.dataset.suspended !== String(next)) {
+      environment.dataset.suspended = String(next);
+    }
+    if (next === suspended) return;
+    suspended = next;
+    if (suspended) stopAnimation();
+    else startAnimation();
+  };
+  const setTrajectoryVisible = (value) => {
+    const next = Boolean(value);
+    if (next === trajectoryVisible) return;
+    trajectoryVisible = next;
+    syncSuspended();
+  };
+
+  const resize = (force = false) => {
+    resizeFrame = 0;
+    if (isContextUnavailable()) return;
+    const nextWidth = Math.max(1, window.innerWidth);
+    const nextHeight = Math.max(1, window.innerHeight);
+    const nextRatio = matrixCanvasScale(nextWidth, nextHeight, window.devicePixelRatio || 1);
+    const nextFontSize = nextWidth < 640 ? 13 : 16;
+    const backingWidth = Math.max(1, Math.floor(nextWidth * nextRatio));
+    const backingHeight = Math.max(1, Math.floor(nextHeight * nextRatio));
+    if (
+      !force
+      && nextWidth === width
+      && nextHeight === height
+      && nextRatio === ratio
+      && backingWidth === canvas.width
+      && backingHeight === canvas.height
+    ) return;
+
+    width = nextWidth;
+    height = nextHeight;
+    ratio = nextRatio;
+    fontSize = nextFontSize;
+    canvas.width = backingWidth;
+    canvas.height = backingHeight;
+    const cssWidth = `${width}px`;
+    const cssHeight = `${height}px`;
+    if (canvas.style.width !== cssWidth) canvas.style.width = cssWidth;
+    if (canvas.style.height !== cssHeight) canvas.style.height = cssHeight;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    columns = [];
+    const count = Math.ceil(width / fontSize);
+    for (let index = 0; index < count; index += 1) {
+      const x = index * fontSize + fontSize / 2;
+      if (!isMatrixSideColumn(x, width)) continue;
+      const phase = ((Math.imul(index + 1, 0x9e3779b1) >>> 0) / 0x1_0000_0000);
+      columns.push({
+        x,
+        y: phase * height - height,
+        speed: 38 + (index * 29) % 52,
+        sourceOffset: (index * 7 + sequenceOffset) % MATRIX_GLYPHS.length,
+        sourceStep: 1 + index % 3,
+      });
+    }
+    setHudText(hudMetrics, `${columns.length} COLUMNS · ${MATRIX_RENDER_LIMITS.framesPerSecond} FPS`);
+    draw();
+  };
+  const scheduleResize = () => {
+    if (!resizeFrame) resizeFrame = requestAnimationFrame(() => resize());
+  };
+  const nudge = (seed) => {
+    if (!Number.isFinite(seed)) return;
+    sequenceOffset = (sequenceOffset + 1 + (Math.floor(seed) >>> 0)) % MATRIX_GLYPHS.length;
+    if (reducedMotion.matches && !suspended && !staticFrame) {
+      staticFrame = requestAnimationFrame(() => {
+        staticFrame = 0;
+        draw();
+      });
+    }
+  };
+
+  const handleVisibility = () => {
+    syncSuspended();
+    if (!document.hidden) scheduleResize();
+  };
   const handleMotion = () => startAnimation();
-  window.addEventListener('resize', resize, { passive: true });
+  const handleContextLost = () => {
+    // Canvas2D loss can follow GPU-memory pressure in a long-lived Chrome tab.
+    // Unlike WebGL, cancelling this event prevents the automatic restoration,
+    // so let the event proceed and pause until contextrestored is delivered.
+    contextLost = true;
+    stopAnimation();
+  };
+  const handleContextRestored = () => {
+    contextLost = false;
+    // Context loss resets the drawing transform and all other drawing state.
+    // Rebuild the DPR-sized bitmap and redraw before resuming animation.
+    resize(true);
+    startAnimation();
+  };
+  window.addEventListener('resize', scheduleResize, { passive: true });
   document.addEventListener('visibilitychange', handleVisibility);
   reducedMotion.addEventListener?.('change', handleMotion);
-  setSources();
+  canvas.addEventListener('contextlost', handleContextLost);
+  canvas.addEventListener('contextrestored', handleContextRestored);
   resize();
-  startAnimation();
+  syncSuspended();
 
   return {
-    setSources,
+    element: environment,
+    nudge,
+    setTrajectoryVisible,
     cleanup() {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', resize);
+      stopAnimation();
+      cancelAnimationFrame(resizeFrame);
+      cancelAnimationFrame(staticFrame);
+      window.removeEventListener('resize', scheduleResize);
       document.removeEventListener('visibilitychange', handleVisibility);
       reducedMotion.removeEventListener?.('change', handleMotion);
+      canvas.removeEventListener('contextlost', handleContextLost);
+      canvas.removeEventListener('contextrestored', handleContextRestored);
       environment.remove();
       document.body.classList.remove(ACTIVE_CLASS);
     },
@@ -428,12 +336,19 @@ function installEnvironment() {
 
 function bindBody(body, runtime) {
   if (!runtime.bodyCleanups.has(body)) {
-    body.dataset.matrixFollowBound = 'true';
+    if (body.dataset.matrixFollowBound !== 'true') body.dataset.matrixFollowBound = 'true';
+    let scrollFrame = 0;
     const handleScroll = () => {
-      body.dataset.matrixManual = isAtScrollTail(body) ? 'false' : 'true';
+      if (scrollFrame) return;
+      scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = 0;
+        const next = isAtScrollTail(body) ? 'false' : 'true';
+        if (body.dataset.matrixManual !== next) body.dataset.matrixManual = next;
+      });
     };
     body.addEventListener('scroll', handleScroll, { passive: true });
     runtime.bodyCleanups.set(body, () => {
+      cancelAnimationFrame(scrollFrame);
       body.removeEventListener('scroll', handleScroll);
       delete body.dataset.matrixFollowBound;
       delete body.dataset.matrixManual;
@@ -463,21 +378,25 @@ function cleanupRemovedNode(node, runtime) {
   for (const row of matchingElements(node, ROW_SELECTOR)) {
     runtime.pendingRows.delete(row);
     runtime.rows.delete(row);
-    row.classList.remove('dsh-matrix-thinking');
-    row.removeAttribute('data-matrix-thinking');
+    if (row.classList.contains('dsh-matrix-thinking')) row.classList.remove('dsh-matrix-thinking');
+    if (row.hasAttribute('data-matrix-thinking')) row.removeAttribute('data-matrix-thinking');
   }
 }
 
 function reveal(row, runtime) {
   if (!(row instanceof Element)) return;
   runtime.rows.add(row);
-  row.classList.add('dsh-matrix-thinking');
-  row.setAttribute('data-matrix-thinking', 'visible');
+  if (!row.classList.contains('dsh-matrix-thinking')) row.classList.add('dsh-matrix-thinking');
+  if (row.getAttribute('data-matrix-thinking') !== 'visible') {
+    row.setAttribute('data-matrix-thinking', 'visible');
+  }
   const body = row.querySelector(BODY_SELECTOR);
   if (body instanceof HTMLElement) {
     bindBody(body, runtime);
-    body.setAttribute('tabindex', '0');
-    if (shouldFollowThinkingTail(body.dataset.matrixManual)) body.scrollTop = body.scrollHeight;
+    if (body.getAttribute('tabindex') !== '0') body.setAttribute('tabindex', '0');
+    if (shouldFollowThinkingTail(body.dataset.matrixManual) && !isAtScrollTail(body)) {
+      body.scrollTop = body.scrollHeight;
+    }
   }
 }
 
@@ -501,132 +420,158 @@ function scan(root, runtime, deferred = false) {
 }
 
 function restoreAttribute(element, name, value) {
-  if (value === null) element.removeAttribute(name);
-  else element.setAttribute(name, value);
-}
-
-export function bindSessionFeed(ctx, onSources) {
-  const sessions = ctx?.sessions;
-  if (!sessions?.list?.getSnapshot || !sessions?.list?.subscribe || !sessions?.binding) {
-    onSources({ blank: false });
-    return () => {};
+  if (value === null) {
+    if (element.hasAttribute(name)) element.removeAttribute(name);
+  } else if (element.getAttribute(name) !== value) {
+    element.setAttribute(name, value);
   }
-
-  let currentId;
-  let currentSession;
-  let hasBoundCurrent = false;
-  let stopCurrentSession = () => {};
-  const publishIdle = () => onSources({ blank: false });
-  const bindCurrentSession = () => {
-    let listSnapshot;
-    let nextId;
-    let nextSession;
-    let failed = false;
-    try {
-      listSnapshot = sessions.list.getSnapshot();
-      nextId = listSnapshot?.current;
-      nextSession = nextId === undefined ? undefined : sessions.binding(nextId)?.session;
-    } catch {
-      failed = true;
-      nextId = undefined;
-      nextSession = undefined;
-    }
-    if (
-      !failed && hasBoundCurrent && nextId === currentId && nextSession === currentSession
-      && nextSession !== undefined
-    ) return;
-    stopCurrentSession();
-    stopCurrentSession = () => {};
-    hasBoundCurrent = true;
-    currentId = nextId;
-    currentSession = nextSession;
-    if (failed) {
-      publishIdle();
-      return;
-    }
-    if (!currentSession?.getSnapshot || !currentSession?.subscribe) {
-      const isAuthoritativeFirstRun = nextId === undefined
-        && listSnapshot?.phase === 'ready'
-        && Array.isArray(listSnapshot.ids)
-        && listSnapshot.ids.length === 0;
-      onSources({ blank: isAuthoritativeFirstRun });
-      return;
-    }
-    const publish = () => {
-      try {
-        onSources(matrixSourcesFromSnapshot(currentSession.getSnapshot()));
-      } catch {
-        publishIdle();
-      }
-    };
-    publish();
-    stopCurrentSession = currentSession.subscribe(publish);
-  };
-
-  bindCurrentSession();
-  const stopList = sessions.list.subscribe(bindCurrentSession);
-  return () => {
-    stopList?.();
-    stopCurrentSession();
-    hasBoundCurrent = false;
-    currentId = undefined;
-    currentSession = undefined;
-  };
 }
 
-export function apply(ctx) {
-  if (typeof document === 'undefined') return;
-  const start = () => {
-    if (!document.body) return;
-    const removeStyles = installStyles();
-    const environment = installEnvironment();
-    const stopSessionFeed = bindSessionFeed(ctx, environment?.setSources ?? (() => {}));
-    const runtime = {
-      rows: new Set(),
-      bodyAttributes: new Map(),
-      bodyCleanups: new Map(),
-      pendingRows: new Set(),
-      revealFrame: 0,
+function findTrajectoryToolbar(root) {
+  if (!(root instanceof Element)) return;
+  if (root.matches(TRAJECTORY_SELECTOR)) return root;
+  return root.querySelector(TRAJECTORY_SELECTOR) ?? undefined;
+}
+
+function mountInstallation() {
+  const previous = document[INSTALLATION_KEY];
+  previous?.dispose?.();
+
+  // Reclaim orphaned artifacts left by older builds that predate the
+  // document-scoped owner. A fresh generation must always own live handles.
+  document.querySelector(`style[data-plugin-css="${STYLE_ID}"]`)?.remove();
+  document.getElementById(ENVIRONMENT_ID)?.remove();
+  document.body.classList.remove(ACTIVE_CLASS);
+
+  const removeStyles = installStyles();
+  let trajectoryToolbar = document.querySelector(TRAJECTORY_SELECTOR) ?? undefined;
+  const environment = installEnvironment(Boolean(trajectoryToolbar));
+  const runtime = {
+    rows: new Set(),
+    bodyAttributes: new Map(),
+    bodyCleanups: new Map(),
+    pendingRows: new Set(),
+    revealFrame: 0,
+  };
+  scan(document, runtime);
+  const observer = new MutationObserver((mutations) => {
+    let activity = 0;
+    let activityEvents = 0;
+    let trajectoryChanged = false;
+    const collectActivity = (node) => {
+      const seed = matrixCharacterDataSeed(node);
+      if (!seed) return;
+      activityEvents += 1;
+      activity = (activity + seed + Math.imul(activityEvents, 0x85ebca6b)) >>> 0;
     };
-    scan(document, runtime);
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          const element = node instanceof Element ? node : node.parentElement;
-          const owner = element?.closest(ROW_SELECTOR);
-          if (owner) scheduleReveal(owner, runtime);
-          if (node instanceof Element) scan(node, runtime, true);
-        }
-        for (const node of mutation.removedNodes) cleanupRemovedNode(node, runtime);
-        if (mutation.type === 'characterData' && mutation.target.parentElement) {
-          const row = mutation.target.parentElement.closest(ROW_SELECTOR);
-          if (row) scheduleReveal(row, runtime);
-        }
-        if (mutation.type === 'attributes' && mutation.target instanceof Element) {
-          const row = mutation.target.matches(ROW_SELECTOR)
-            ? mutation.target
-            : mutation.target.closest(ROW_SELECTOR);
-          if (row) scheduleReveal(row, runtime);
+
+    for (const mutation of mutations) {
+      if (
+        environment?.element
+        && (mutation.target === environment.element || environment.element.contains(mutation.target))
+      ) continue;
+
+      if (mutation.type === 'characterData') collectActivity(mutation.target);
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === 3) collectActivity(node);
+        const element = node instanceof Element ? node : node.parentElement;
+        const owner = element?.closest(ROW_SELECTOR);
+        if (owner) scheduleReveal(owner, runtime);
+        if (node instanceof Element) {
+          scan(node, runtime, true);
+          const toolbar = findTrajectoryToolbar(node);
+          if (toolbar && toolbar !== trajectoryToolbar) {
+            trajectoryToolbar = toolbar;
+            trajectoryChanged = true;
+          }
         }
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'data-state'] });
-    ctx.effect(() => () => {
+      for (const node of mutation.removedNodes) {
+        if (node.nodeType === 3) collectActivity(node);
+        if (
+          trajectoryToolbar
+          && (node === trajectoryToolbar || (node instanceof Element && node.contains(trajectoryToolbar)))
+        ) {
+          trajectoryToolbar = undefined;
+          trajectoryChanged = true;
+        }
+        cleanupRemovedNode(node, runtime);
+      }
+      if (mutation.type === 'characterData' && mutation.target.parentElement) {
+        const row = mutation.target.parentElement.closest(ROW_SELECTOR);
+        if (row) scheduleReveal(row, runtime);
+      }
+      if (mutation.type === 'attributes' && mutation.target instanceof Element) {
+        if (mutation.attributeName === 'aria-label') {
+          if (mutation.target.matches(TRAJECTORY_SELECTOR)) {
+            if (trajectoryToolbar !== mutation.target) {
+              trajectoryToolbar = mutation.target;
+              trajectoryChanged = true;
+            }
+          } else if (trajectoryToolbar === mutation.target) {
+            trajectoryToolbar = undefined;
+            trajectoryChanged = true;
+          }
+        }
+        const row = mutation.target.matches(ROW_SELECTOR)
+          ? mutation.target
+          : mutation.target.closest(ROW_SELECTOR);
+        if (row) scheduleReveal(row, runtime);
+      }
+    }
+    if (trajectoryChanged) {
+      if (!trajectoryToolbar?.isConnected) {
+        trajectoryToolbar = document.querySelector(TRAJECTORY_SELECTOR) ?? undefined;
+      }
+      environment?.setTrajectoryVisible(Boolean(trajectoryToolbar));
+    }
+    if (activityEvents) environment?.nudge(activity);
+  });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['aria-expanded', 'data-state', 'aria-label'],
+  });
+
+  let disposed = false;
+  const installation = {
+    dispose() {
+      if (disposed) return;
+      disposed = true;
       observer.disconnect();
       cancelAnimationFrame(runtime.revealFrame);
       runtime.pendingRows.clear();
       for (const body of [...runtime.bodyCleanups.keys()]) cleanupBody(body, runtime);
       for (const row of runtime.rows) {
-        row.classList.remove('dsh-matrix-thinking');
-        row.removeAttribute('data-matrix-thinking');
+        if (row.classList.contains('dsh-matrix-thinking')) row.classList.remove('dsh-matrix-thinking');
+        if (row.hasAttribute('data-matrix-thinking')) row.removeAttribute('data-matrix-thinking');
       }
-      stopSessionFeed();
       environment?.cleanup();
       removeStyles?.();
-    }, 'dsh-matrix-skin: cleanup');
+      if (document[INSTALLATION_KEY] === installation) delete document[INSTALLATION_KEY];
+    },
   };
-  if (document.body) start();
-  else document.addEventListener('DOMContentLoaded', start, { once: true });
+  document[INSTALLATION_KEY] = installation;
+  return installation;
+}
+
+export function apply(ctx) {
+  if (typeof document === 'undefined') return;
+  ctx.effect(() => {
+    let installation;
+    const start = () => {
+      if (!document.body || installation) return;
+      installation = mountInstallation();
+    };
+    if (document.body) start();
+    else document.addEventListener('DOMContentLoaded', start, { once: true });
+    return () => {
+      document.removeEventListener('DOMContentLoaded', start);
+      installation?.dispose();
+    };
+  }, 'dsh-matrix-skin: cleanup');
 }
 
 const MATRIX_CSS = String.raw`
@@ -896,9 +841,6 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(0deg, rgba(84,255,145,.025) 0 1px, transparent 1px 4px);
-  -webkit-mask-image: linear-gradient(90deg, #000, transparent 36%, transparent 64%, #000);
-  mask-image: linear-gradient(90deg, #000, transparent 36%, transparent 64%, #000);
-  mix-blend-mode: screen;
 }
 .dsh-matrix-environment::after {
   content: none;
@@ -909,15 +851,9 @@ body.dsh-matrix-skin-active *::-webkit-scrollbar-thumb {
   width: 100%;
   height: 100%;
   opacity: .3;
-  filter: drop-shadow(0 0 5px rgba(65,255,137,.72));
-  mix-blend-mode: screen;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
 }
-body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-rain {
-  opacity: .08;
-}
-body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-hud {
+.dsh-matrix-environment[data-suspended="true"] .dsh-matrix-rain,
+.dsh-matrix-environment[data-suspended="true"] .dsh-matrix-hud {
   display: none;
 }
 .dsh-matrix-hud {
@@ -984,10 +920,6 @@ body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-h
   background: currentColor;
   box-shadow: 0 0 9px currentColor;
   animation: dsh-matrix-hud-blink 1.8s steps(2, end) infinite;
-}
-.dsh-matrix-environment[data-matrix-source="readme"] .dsh-matrix-hud__status,
-.dsh-matrix-environment[data-matrix-source="idle"] .dsh-matrix-hud__status {
-  color: rgba(122,203,154,.72);
 }
 [data-matrix-thinking="visible"] {
   position: relative;
@@ -1078,7 +1010,6 @@ body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-h
     var(--dsh-matrix-bg);
   font: 500 13px/1.72 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: .012em;
-  text-shadow: 0 0 8px rgba(67,255,145,.38);
   white-space: pre-wrap;
   word-break: break-word;
   caret-color: var(--dsh-matrix-bright);
@@ -1130,12 +1061,6 @@ body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-h
     0 0 42px rgba(38,255,116,.16),
     inset 0 1px rgba(192,255,217,.06);
 }
-[data-matrix-thinking="visible"][data-state="running"] [class*="thinkBody"] {
-  animation: dsh-matrix-pulse 2.2s ease-in-out infinite;
-}
-@keyframes dsh-matrix-pulse {
-  50% { box-shadow: inset 0 0 26px rgba(67,255,145,.075); }
-}
 @keyframes dsh-matrix-status {
   0%, 100% { opacity: .66; }
   50% { opacity: 1; }
@@ -1151,7 +1076,6 @@ body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-h
 @media (prefers-reduced-motion: reduce) {
   .dsh-matrix-rain { opacity: .22; }
   .dsh-matrix-hud__status::before,
-  [data-matrix-thinking="visible"] [class*="thinkBody"],
   [data-matrix-thinking="visible"]::before,
   [data-matrix-thinking="visible"]::after { animation: none !important; }
   [data-matrix-thinking="visible"]::after { display: none; }
@@ -1164,8 +1088,6 @@ body.dsh-matrix-skin-active:has([aria-label="Trajectory toolbar"]) .dsh-matrix-h
   .dsh-matrix-hud { display: none; }
   .dsh-matrix-rain {
     opacity: .24;
-    -webkit-mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
-    mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
   }
   [data-matrix-thinking="visible"] { margin-block: 12px; border-radius: 11px; }
   [data-matrix-thinking="visible"]::before { padding-inline: 24px 10px; font-size: 8px; letter-spacing: .12em; }

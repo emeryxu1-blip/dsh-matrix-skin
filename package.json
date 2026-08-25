@@ -1,7 +1,7 @@
 {
   "name": "dsh-matrix-skin",
   "version": "0.1.0",
-  "description": "Black-first Matrix hacker skin for DeepSeek Harness (DSH) Web with session-powered code rain and readable provider reasoning.",
+  "description": "Black-first Matrix hacker skin for DeepSeek Harness (DSH) Web with lightweight local glyph rain and readable provider reasoning.",
   "homepage": "https://github.com/emeryxu1-blip/dsh-matrix-skin#readme",
   "author": "Gavin Xu",
   "keywords": [
