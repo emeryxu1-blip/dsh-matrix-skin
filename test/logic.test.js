@@ -28,11 +28,52 @@ test('client requests only the local sessions snapshot service', () => {
 });
 
 test('the complete visual stylesheet stays byte-identical to the established UI', () => {
-  assert.equal(matrixCss.length, 20_540);
+  assert.equal(matrixCss.length, 21_684);
   assert.equal(
     createHash('sha256').update(matrixCss).digest('hex'),
-    '8de926e4cbc58e596cddd56744d756b728098845dcd99b24dcde9af24334ab5f',
+    '6e79aefa575850b819d905574ad73d22769dc9262948b5dacc840aef9f5eeb69',
   );
+});
+
+test('composer context boxes share the Todo surface treatment', () => {
+  const cssRules = [...matrixCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const rule = (selector) => cssRules.find(([, selectors]) => selectors.trim() === selector) ?? [];
+
+  const [, , dockTokens = ''] = rule(
+    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"]',
+  );
+  assert.match(dockTokens, /--dsw-specific-tip:\s*#030504;/);
+  assert.match(dockTokens, /--dsw-alias-border-l1:\s*rgba\(67,255,145,\.2\);/);
+
+  const [, dockSelectors = '', dockSurface = ''] = cssRules.find(([, selectors]) => (
+    selectors.includes('[data-goal-bar] > :first-child')
+  )) ?? [];
+  assert.deepEqual(dockSelectors.split(',').map((selector) => selector.trim()), [
+    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > :not([data-goal-bar]):not([data-queue-dock])',
+    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > [data-goal-bar] > :first-child',
+    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > [data-queue-dock] > :first-child',
+  ]);
+  assert.match(dockSurface, /border-color:\s*rgba\(67,255,145,\.2\)\s*!important;/);
+  assert.match(dockSurface, /background:\s*#030504\s*!important;/);
+  assert.match(dockSurface, /box-shadow:\s*inset 2px 0 rgba\(67,255,145,\.42\), 0 10px 24px rgba\(0,0,0,\.28\);/);
+  assert.doesNotMatch(
+    matrixCss,
+    /\[data-slot="conversation\.input\.dock"\]\s*>\s*\*\s*\{/,
+  );
+
+  const [, , noticeSurface = ''] = rule(
+    'body.dsh-matrix-skin-active [data-slot="conversation.composer.bar"] [role="status"]',
+  );
+  assert.match(noticeSurface, /box-sizing:\s*border-box;/);
+  assert.match(noticeSurface, /border:\s*1px solid rgba\(67,255,145,\.2\);/);
+  assert.match(noticeSurface, /border-radius:\s*12px;/);
+  assert.match(noticeSurface, /background:\s*#030504\s*!important;/);
+
+  const [, , errorNotice = ''] = rule(
+    'body.dsh-matrix-skin-active [data-slot="conversation.composer.bar"] [role="status"][class*="_noticeError"]',
+  );
+  assert.match(errorNotice, /border-color:\s*rgba\(255,101,122,\.24\);/);
+  assert.match(errorNotice, /box-shadow:\s*inset 2px 0 var\(--dsh-matrix-danger\)/);
 });
 
 test('composer paints draft text once through the backdrop layer', () => {
