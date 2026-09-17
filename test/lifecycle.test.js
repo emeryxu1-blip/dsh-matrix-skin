@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { runInThisContext } from 'node:vm';
 import { apply } from '../src/client.js';
 
 class FakeEventTarget {
@@ -589,6 +591,94 @@ test('displayed rain adopts a conversation scrollport mounted after plugin start
     });
   } finally {
     owner.dispose();
+    dom.restore();
+  }
+});
+
+test('packaged skin works with Session Controller snapshots and leaves provider plugins untouched', () => {
+  const dom = installFakeDom();
+  const list = observable({ current: 'modern', ids: ['modern'], phase: 'ready' });
+  // DSH 0.1.5 moved conversation nodes out of the public SessionSnapshot.
+  const session = observable(Object.freeze({
+    sessionId: 'modern', blank: false, openState: 'open',
+    queue: Object.freeze([]), pendingSubmissions: Object.freeze([]),
+    running: false, removed: false,
+  }));
+  const owner = effectContext({ list: list.store, binding: () => ({ session: session.store }) });
+  const context = new Proxy(owner.ctx, {
+    get(target, property) {
+      assert.ok(property === 'sessions' || property === 'effect', `unexpected service: ${String(property)}`);
+      return target[property];
+    },
+    set() { assert.fail('a skin must not change provider services'); },
+  });
+  const providerControls = dom.document.createElement('section');
+  providerControls.setAttribute('data-slot', 'conversation.input.model');
+  providerControls.className = 'separate-provider-plugin';
+  const effort = dom.document.createElement('button');
+  effort.textContent = 'Effort: High';
+  effort.setAttribute('aria-haspopup', 'menu');
+  effort.setAttribute('aria-expanded', 'false');
+  const onEffort = () => effort.setAttribute('aria-expanded', 'true');
+  effort.addEventListener('click', onEffort);
+  providerControls.appendChild(effort);
+  const foreignStyles = dom.document.createElement('style');
+  foreignStyles.dataset.pluginCss = 'separate-provider-plugin/styles';
+  foreignStyles.textContent = '.separate-provider-plugin { color: inherit; }';
+  dom.document.head.appendChild(foreignStyles);
+  dom.document.body.appendChild(providerControls);
+
+  const scrollport = dom.document.createElement('main');
+  scrollport.setAttribute('data-conversation-scroll', '');
+  const step = dom.document.createElement('article');
+  step.setAttribute('data-chat-flow-kind', 'assistant-step');
+  const markdown = dom.document.createElement('div');
+  markdown.className = '_markdown_kcgor_5';
+  markdown.appendChild(dom.document.createTextNode('Current DSH rendered reply'));
+  step.appendChild(markdown);
+  scrollport.appendChild(step);
+  dom.document.body.appendChild(scrollport);
+
+  const originalFetch = globalThis.fetch;
+  const forbiddenFetch = () => assert.fail('a skin must not make network requests');
+  globalThis.fetch = forbiddenFetch;
+  dom.fakeWindow.fetch = forbiddenFetch;
+  let packaged;
+  dom.fakeWindow.__ModuleLoader__ = {
+    load({ id, factory }) {
+      assert.equal(id, 'dsh-matrix-skin');
+      packaged = factory(() => assert.fail('the skin must not import a provider or legacy runtime'));
+    },
+  };
+  try {
+    runInThisContext(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'));
+    assert.deepEqual(packaged.inject, ['sessions']);
+    packaged.apply(context);
+    for (const [id, callback] of [...dom.frames]) {
+      dom.frames.delete(id);
+      callback(100);
+    }
+    assert.equal(hudSnapshot(dom.document).matrixSource, 'session');
+    assert.equal(session.reads(), 1);
+    assert.equal(session.subscribeCalls(), 0);
+    assert.equal(globalThis.fetch, forbiddenFetch);
+    assert.equal(dom.fakeWindow.fetch, forbiddenFetch);
+    assert.equal(providerControls.className, 'separate-provider-plugin');
+    assert.equal(providerControls.children[0], effort);
+    assert.equal(effort.textContent, 'Effort: High');
+    assert.equal(effort.getAttribute('aria-expanded'), 'false');
+    effort.dispatchEvent({ type: 'click' });
+    assert.equal(effort.getAttribute('aria-expanded'), 'true');
+    owner.dispose();
+    assert.deepEqual(dom.mounted(), { environments: 0, styles: 0, active: false });
+    assert.equal(list.listenerCount(), 0);
+    assert.equal(providerControls.isConnected, true);
+    assert.equal(foreignStyles.isConnected, true);
+    assert.equal(effort.listenerCount('click'), 1);
+    assert.equal(effort.getAttribute('aria-expanded'), 'true');
+  } finally {
+    owner.dispose();
+    globalThis.fetch = originalFetch;
     dom.restore();
   }
 });

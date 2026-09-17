@@ -1,6 +1,8 @@
 // Cordis injection names runtime services, not npm packages. The session list
 // selects one bounded initial snapshot; live rain text then comes from the DSH
 // content that is already rendered in the page.
+// The conversation package orders this service in both legacy DSH runtime and
+// the 0.1.5 Session Controller. Do not load a second, obsolete runtime package.
 export const inject = ['sessions'];
 
 const STYLE_ID = 'dsh-matrix-skin/styles';

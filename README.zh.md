@@ -20,8 +20,16 @@
 
 ## 环境要求
 
-- DeepSeek Harness `0.1.0-rc.6`，或使用相同 Web client-plugin 合约的兼容版本
+- DeepSeek Harness `0.1.5-rc.1`；同时保留对旧版 `0.1.0-rc.6` / `0.1.1-rc.2` 客户端合约的支持
 - DSH 的 `web` profile
+
+`0.1.2` 通过 DSH 已有的 conversation 包取得 `sessions` 服务，不会在新版 Session Controller 旁加载已废弃的 client runtime。新版 DSH 的初始快照用于会话状态和队列，代码雨读取已渲染的对话文本；旧版包含消息节点的快照仍然兼容。
+
+## 提供商与插件独立性
+
+Matrix Skin 只改变外观。模型/提供商下拉菜单、Effort 选项、默认值、请求参数、认证和重试仍由 DSH 及单独安装的提供商插件负责。使用 DeepSeek 官方 API 时保留 DSH 原生选项；皮肤不包含公司地址、网络检测、模型目录或网关设置。
+
+独立的网关/重试插件可以单独启用、停用或卸载。Matrix 仅读取会话内容，使用自己的 `dsh-matrix-*` DOM 标记、样式元素和清理生命周期，不替换其他插件的控件，也不修改提供商服务。
 
 ## 安装并启用
 

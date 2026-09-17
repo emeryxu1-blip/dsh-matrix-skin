@@ -20,8 +20,16 @@ The rain is not a canned loop: it starts from a bounded local snapshot, then che
 
 ## Requirements
 
-- DeepSeek Harness `0.1.0-rc.6`, or a compatible release using the same Web client-plugin contract
+- DeepSeek Harness `0.1.5-rc.1`; the legacy `0.1.0-rc.6` / `0.1.1-rc.2` client contracts are also supported
 - The `web` DSH profile
+
+Version `0.1.2` uses DSH's existing conversation package to resolve the `sessions` service. It does not install the obsolete client runtime alongside the new Session Controller. With current DSH, the initial snapshot provides lifecycle/queue state and the rain reads rendered conversation text; legacy snapshots with message nodes remain supported.
+
+## Provider and plugin independence
+
+Matrix Skin changes presentation only. Model/provider dropdowns, Effort choices, defaults, request parameters, authentication, and retries remain owned by DSH and any separately installed provider plugin. Using the official DeepSeek API keeps DSH's native options; this skin contains no company endpoints, network checks, model catalogs, or gateway setup.
+
+A separate gateway/retry plugin can be enabled, disabled, or removed independently. Matrix uses only the read-only session feed and its own `dsh-matrix-*` DOM markers, style element, and cleanup owner; it does not replace another plugin's controls or patch provider services.
 
 ## Install and enable
 

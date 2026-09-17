@@ -1,6 +1,6 @@
 {
   "name": "dsh-matrix-skin",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Black-first Matrix hacker skin for DeepSeek Harness (DSH) Web with efficient displayed-text code rain and readable provider reasoning.",
   "homepage": "https://github.com/emeryxu1-blip/dsh-matrix-skin#readme",
   "author": "Gavin Xu",
@@ -40,12 +40,11 @@
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": {
-      "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-conversation"],
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"],
       "platform": "web"
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.0-rc.6 || ^0.1.1-rc.2 || ^0.1.5-rc.1"
   }
 }
