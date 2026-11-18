@@ -1,5 +1,5 @@
-# Additive profile layer for the DSH Web browser roster.
-# The standard web bundle remains authoritative; this row only adds Matrix UI.
+# Additive profile layer for the DSH Web and Desktop browser roster.
+# The standard app bundle remains authoritative; this row only adds Matrix UI.
 - insert:
     - id: matrix-skin
       name: 'dsh-matrix-skin'

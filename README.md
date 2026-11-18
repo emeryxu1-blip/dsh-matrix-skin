@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 > Turn DeepSeek Harness into a focused, black-terminal command deck.
 
-**DSH Matrix Skin** gives the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web UI a sharp Matrix-inspired identity without getting in the way of real work. Flat near-black surfaces, restrained neon signals, clearer Think panels, and live neural rain make every session feel like an active system rather than another generic chat window.
+**DSH Matrix Skin** gives the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI a sharp Matrix-inspired identity without getting in the way of real work. Flat near-black surfaces, restrained neon signals, clearer Think panels, and live neural rain make every session feel like an active system rather than another generic chat window.
 
 The rain is not a canned loop: it starts from a bounded local snapshot, then cheaply reuses the newest user text, assistant replies, streaming output, and provider-exposed reasoning that DSH has already rendered. It no longer scans the full session on every update. A brand-new empty DSH starts with the official DeepSeek Harness README as its initial signal.
 
@@ -20,10 +20,10 @@ The rain is not a canned loop: it starts from a bounded local snapshot, then che
 
 ## Requirements
 
-- DeepSeek Harness `0.1.5-rc.1`; the legacy `0.1.0-rc.6` / `0.1.1-rc.2` client contracts are also supported
-- The `web` DSH profile
+- DeepSeek Harness Desktop `0.2.2-rc.3` or the matching Web runtime
+- The `desktop` profile for the official app, or `web` for browser use
 
-Version `0.1.2` uses DSH's existing conversation package to resolve the `sessions` service. It does not install the obsolete client runtime alongside the new Session Controller. With current DSH, the initial snapshot provides lifecycle/queue state and the rain reads rendered conversation text; legacy snapshots with message nodes remain supported.
+Version `0.2.0` supports the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
 
 ## Provider and plugin independence
 
@@ -32,6 +32,24 @@ Matrix Skin changes presentation only. Model/provider dropdowns, Effort choices,
 A separate gateway/retry plugin can be enabled, disabled, or removed independently. Matrix uses only the read-only session feed and its own `dsh-matrix-*` DOM markers, style element, and cleanup owner; it does not replace another plugin's controls or patch provider services.
 
 ## Install and enable
+
+### Official Desktop app
+
+1. Open **DeepSeek Harness** from Applications.
+2. Choose **Plugins → Add plugin** and enter `github:emeryxu1-blip/dsh-matrix-skin`.
+3. Install and enable the bundle, then restart the app if requested.
+
+You can launch the app normally afterward; no Terminal command is needed. Desktop and Web share conversation data and settings, but keep plugin installations separate. Installing in `web` does not enable the skin in `desktop`.
+
+For command-line installation, first launch Desktop once, fully quit it, and use the command supplied by Desktop's **Manage dsh Command…** menu:
+
+```bash
+dsh plugin --profile desktop add github:emeryxu1-blip/dsh-matrix-skin
+```
+
+Reopen Desktop from Applications. Use the Desktop-supplied command, since npm-installed DSH cannot modify the managed Desktop profile.
+
+### Web profile
 
 ```bash
 dsh plugin --profile web add -w github:emeryxu1-blip/dsh-matrix-skin
@@ -44,7 +62,7 @@ Installation enables the skin automatically. Open or hard-refresh the DSH Web UI
 
 Use DSH normally—no plugin configuration is required.
 
-1. Start DSH Web with `dsh web`.
+1. Open the Desktop app, or start DSH Web with `dsh web`.
 2. Select or create a session.
 3. Chat as usual; the Matrix feed updates from the newest text already displayed in DSH.
 4. Expand a native **Think** row to use the terminal-style reasoning viewer.
@@ -65,9 +83,11 @@ Confirm its bundle layer is active:
 dsh --profile web --dump-config
 ```
 
-Look for the `dsh-matrix-skin` layer and its `matrix-skin` entry. In DSH Web, open **Settings → Plugins → Plugin list**, search for `matrix-skin`, and check that it says **Mounted, Enabled**.
+Look for the `dsh-matrix-skin` layer and its `matrix-skin` entry. In current DSH, open **Plugins → Installed plugins** and confirm the bundle is enabled. **Settings → Built-in plugins** shows runtime inventory. For Desktop CLI checks, fully quit the app and substitute `--profile desktop` using the Desktop-supplied command; reopen the app afterward.
 
 ## Temporarily disable
+
+In Desktop, open **Plugins**, find **dsh-matrix-skin**, and turn it off. Restart if requested. Turn it on there to re-enable it. The file-edit instructions below are for the Web profile.
 
 Append this entry to the existing top-level array in `~/.dsh/profiles/web/cordis.patch.yml` (or `$DSH_HOME/profiles/web/cordis.patch.yml` when `DSH_HOME` is set):
 
@@ -83,6 +103,8 @@ Do not replace the rest of the profile patch file. Restart `dsh web` and hard-re
 Delete the `matrix-skin` override above, restart `dsh web`, and hard-refresh. The bundle's default enabled state returns.
 
 ## Update or uninstall
+
+In Desktop, manage the bundle through **Plugins**. Use **Add plugin** with its GitHub source again when installing a new GitHub revision; use the bundle's uninstall action to remove it. Restart if requested. The commands below manage the Web installation.
 
 ```bash
 # Update

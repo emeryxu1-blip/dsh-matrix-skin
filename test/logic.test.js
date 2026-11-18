@@ -27,11 +27,11 @@ test('client requests only the local sessions snapshot service', () => {
   assert.deepEqual(inject, ['sessions']);
 });
 
-test('the complete visual stylesheet stays byte-identical to the established UI', () => {
-  assert.equal(matrixCss.length, 21_684);
+test('the migrated visual stylesheet stays byte-identical to the reviewed UI', () => {
+  assert.equal(matrixCss.length, 21799);
   assert.equal(
     createHash('sha256').update(matrixCss).digest('hex'),
-    '6e79aefa575850b819d905574ad73d22769dc9262948b5dacc840aef9f5eeb69',
+    '0f7cd6ec8ea84fb0ac2f7f4279ce96eb722c4e48f0aecd39b59f26de58e5b1bf',
   );
 });
 
@@ -117,6 +117,7 @@ test('sent and pending prompts decorate only the native bubble', () => {
     selectors.includes('[class*="_userStack"] > [class*="_bubble"]')
   )) ?? [];
   assert.deepEqual(surfaceSelectors.split(',').map((selector) => selector.trim()), [
+    'body.dsh-matrix-skin-active [data-message-bubble]',
     'body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"]',
     'body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"]',
     'body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] > [class*="_bubble"]',
@@ -540,7 +541,7 @@ test('displayed-text windows read only a bounded tail and skip UI-control subtre
     const container = element();
     container.matches = (selector) => {
       if (category === 'thinking') return selector.includes('[data-variant="think"]');
-      if (category === 'assistant') return selector.includes('_markdown_');
+      if (category === 'assistant') return selector.includes('_markdown');
       if (category === 'user') return selector.includes('_userStack');
       return false;
     };
@@ -689,4 +690,70 @@ test('whole-trail culling rejects exactly the columns the original renderer left
       assert.equal(isMatrixTrailOutside(y, trail, fontSize, height), original.length === 0);
     }
   }
+});
+
+test('Desktop navigation switches the borrowed snapshot independently of catalog updates', () => {
+  const observable = (initial) => {
+    let snapshot = initial;
+    const listeners = new Set();
+    return {
+      store: {
+        getSnapshot: () => snapshot,
+        subscribe: (listener) => { listeners.add(listener); return () => listeners.delete(listener); },
+      },
+      emit(value) { snapshot = value; for (const listener of listeners) listener(); },
+      count: () => listeners.size,
+    };
+  };
+  // Current DSH has no list.current. The selected renderer binding is authoritative,
+  // even while the old session's mainView count is still present in the catalog.
+  const list = observable({ ids: ['a', 'b'], phase: 'ready', byId: {
+    a: { id: 'a', retainedBy: { mainView: 1 } }, b: { id: 'b', retainedBy: {} },
+  } });
+  const selection = observable({ key: 'a' });
+  const reads = [];
+  const sessions = {
+    list: list.store,
+    binding(id) {
+      return { session: {
+        getSnapshot() { reads.push(id); return { blank: id === 'b', openState: 'open' }; },
+        get subscribe() { assert.fail('a visual skin must not follow the streaming Session store'); },
+      } };
+    },
+    retain() { assert.fail('a skin must not retain sessions or open their histories'); },
+  };
+  const sources = [];
+  const stop = bindSessionRoster({ sessions, uiSession: { adapter: { current: selection.store } } },
+    (value) => sources.push(value));
+  assert.deepEqual(reads, ['a']);
+  selection.emit({ key: 'b' });
+  assert.deepEqual(reads, ['a', 'b']);
+  assert.equal(sources.at(-1).blank, true);
+  selection.emit({ key: undefined });
+  assert.deepEqual(sources.at(-1), { blank: false });
+  assert.deepEqual(reads, ['a', 'b']);
+  stop();
+  assert.equal(list.count(), 0);
+  assert.equal(selection.count(), 0);
+});
+
+test('current catalog mainView ownership is a read-only fallback when no renderer selection source exists', () => {
+  let listener;
+  let snapshot = { ids: ['background', 'visible'], phase: 'ready', byId: {
+    background: { id: 'background', retainedBy: { tool: 1 } },
+    visible: { id: 'visible', retainedBy: { mainView: 1 } },
+  } };
+  const reads = [];
+  const sources = [];
+  const stop = bindSessionRoster({ sessions: {
+    list: { getSnapshot: () => snapshot, subscribe: (value) => { listener = value; return () => { listener = undefined; }; } },
+    binding(id) { reads.push(id); return { session: { getSnapshot: () => ({ blank: true, openState: 'open' }) } }; },
+  } }, (value) => sources.push(value));
+  assert.deepEqual(reads, ['visible']);
+  assert.equal(sources.at(-1).blank, true);
+  snapshot = { ...snapshot, byId: { background: snapshot.byId.background } };
+  listener();
+  assert.deepEqual(sources.at(-1), { blank: false });
+  stop();
+  assert.equal(listener, undefined);
 });

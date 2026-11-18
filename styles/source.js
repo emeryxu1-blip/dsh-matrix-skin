@@ -2,7 +2,7 @@
 // selects one bounded initial snapshot; live rain text then comes from the DSH
 // content that is already rendered in the page.
 // The conversation package orders this service in both legacy DSH runtime and
-// the 0.1.5 Session Controller. Do not load a second, obsolete runtime package.
+// the Session Controller used by Web and Desktop. Do not load another runtime.
 export const inject = ['sessions'];
 
 const STYLE_ID = 'dsh-matrix-skin/styles';
@@ -17,8 +17,9 @@ const MATRIX_GLYPH_LIMIT = 32768;
 const MATRIX_INSTALLATION_OWNER = Symbol.for('dsh-matrix-skin/installation');
 const MATRIX_DOM_SOURCE_SELECTORS = Object.freeze({
   thinking: ROW_SELECTOR,
-  assistant: '[data-chat-flow-kind="assistant-step"] [class*="_markdown_"]',
+  assistant: '[data-chat-flow-kind="assistant-step"] [class*="_markdown"]',
   user: [
+    '[data-message-bubble]',
     '[data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"]',
     '[data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"]',
     '[data-pending-steering] [class*="_userStack"] > [class*="_bubble"]',
@@ -792,6 +793,10 @@ export function bindSessionRoster(ctx, onSources) {
     return () => {};
   }
 
+  // Desktop 0.2.2 navigation lives in uiSession; list.current is legacy.
+  // Borrow the selected binding without retaining sessions or opening history.
+  const selected = ctx?.uiSession?.adapter?.current;
+  const selection = selected?.getSnapshot && selected?.subscribe ? selected : undefined;
   let currentId;
   let currentSession;
   let currentBlank;
@@ -836,7 +841,10 @@ export function bindSessionRoster(ctx, onSources) {
     let nextSession;
     try {
       listSnapshot = sessions.list.getSnapshot();
-      nextId = listSnapshot?.current;
+      nextId = selection
+        ? selection.getSnapshot()?.key
+        : listSnapshot?.current ?? Object.values(listSnapshot?.byId ?? {})
+          .find((entry) => (entry?.retainedBy?.mainView ?? 0) > 0)?.id;
       nextSession = nextId === undefined ? undefined : sessions.binding(nextId)?.session;
     } catch {
       stopInitialSession();
@@ -873,9 +881,12 @@ export function bindSessionRoster(ctx, onSources) {
     }
   };
 
-  publishSelection();
   const stopList = sessions.list.subscribe(publishSelection);
+  const stopSelection = selection?.subscribe(publishSelection);
+  // Re-read after subscribing so a synchronous navigation update cannot be lost.
+  publishSelection();
   return () => {
+    stopSelection?.();
     stopList?.();
     stopInitialSession();
     hasPublished = false;
@@ -1107,7 +1118,8 @@ body.dsh-matrix-skin-active [role="treeitem"][aria-selected="true"] {
   background: rgba(67, 255, 145, .075) !important;
   box-shadow: inset 2px 0 var(--dsh-matrix-green), 0 0 18px rgba(39, 255, 122, .045);
 }
-body.dsh-matrix-skin-active [data-slot="conversation"] > * {
+body.dsh-matrix-skin-active [data-slot="conversation"] > *,
+body.dsh-matrix-skin-active [data-slot="main.conversation"] > * {
   background: transparent !important;
 }
 body.dsh-matrix-skin-active [data-conversation-scroll] {
@@ -1154,7 +1166,7 @@ body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] [data-slot="c
   padding-left: 18px;
   background: transparent;
 }
-body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] [class*="_markdown_"] {
+body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] [class*="_markdown"] {
   color: rgba(224, 246, 231, .91);
 }
 body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] :is(code, pre) {
@@ -1167,6 +1179,7 @@ body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] code {
 body.dsh-matrix-skin-active [data-chat-flow-kind="assistant-step"] :not(pre) > code {
   background-color: #07100b;
 }
+body.dsh-matrix-skin-active [data-message-bubble],
 body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"],
 body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"],
 body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] > [class*="_bubble"] {

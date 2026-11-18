@@ -207,8 +207,8 @@ class FakeElement extends FakeEventTarget {
       if (part === '[data-conversation-scroll]') {
         return this.attributes.has('data-conversation-scroll');
       }
-      if (part.includes('[data-chat-flow-kind="assistant-step"]') && part.includes('[class*="_markdown_"]')) {
-        return this.className.includes('_markdown_') && Boolean(
+      if (part.includes('[data-chat-flow-kind="assistant-step"]') && part.includes('[class*="_markdown"]')) {
+        return this.className.includes('_markdown') && Boolean(
           this.closest('[data-chat-flow-kind="assistant-step"]'),
         );
       }
@@ -595,9 +595,10 @@ test('displayed rain adopts a conversation scrollport mounted after plugin start
   }
 });
 
-test('packaged skin works with Session Controller snapshots and leaves provider plugins untouched', () => {
+test('packaged skin supports Desktop 0.2.2 navigation and CSS modules without changing provider plugins', () => {
   const dom = installFakeDom();
-  const list = observable({ current: 'modern', ids: ['modern'], phase: 'ready' });
+  const list = observable({ ids: ['modern'], byId: { modern: { id: 'modern', retainedBy: { mainView: 1 } } }, phase: 'ready' });
+  const selection = observable({ key: 'modern' });
   // DSH 0.1.5 moved conversation nodes out of the public SessionSnapshot.
   const session = observable(Object.freeze({
     sessionId: 'modern', blank: false, openState: 'open',
@@ -605,9 +606,10 @@ test('packaged skin works with Session Controller snapshots and leaves provider 
     running: false, removed: false,
   }));
   const owner = effectContext({ list: list.store, binding: () => ({ session: session.store }) });
+  owner.ctx.uiSession = { adapter: { current: selection.store } };
   const context = new Proxy(owner.ctx, {
     get(target, property) {
-      assert.ok(property === 'sessions' || property === 'effect', `unexpected service: ${String(property)}`);
+      assert.ok(property === 'sessions' || property === 'uiSession' || property === 'effect', `unexpected service: ${String(property)}`);
       return target[property];
     },
     set() { assert.fail('a skin must not change provider services'); },
@@ -633,7 +635,8 @@ test('packaged skin works with Session Controller snapshots and leaves provider 
   const step = dom.document.createElement('article');
   step.setAttribute('data-chat-flow-kind', 'assistant-step');
   const markdown = dom.document.createElement('div');
-  markdown.className = '_markdown_kcgor_5';
+  // DSH 0.2.2 emits [hash]_[local], without the legacy trailing underscore.
+  markdown.className = 'AbCdEf_markdown';
   markdown.appendChild(dom.document.createTextNode('Current DSH rendered reply'));
   step.appendChild(markdown);
   scrollport.appendChild(step);
@@ -661,6 +664,7 @@ test('packaged skin works with Session Controller snapshots and leaves provider 
     assert.equal(hudSnapshot(dom.document).matrixSource, 'session');
     assert.equal(session.reads(), 1);
     assert.equal(session.subscribeCalls(), 0);
+    assert.equal(selection.listenerCount(), 1);
     assert.equal(globalThis.fetch, forbiddenFetch);
     assert.equal(dom.fakeWindow.fetch, forbiddenFetch);
     assert.equal(providerControls.className, 'separate-provider-plugin');
@@ -672,6 +676,7 @@ test('packaged skin works with Session Controller snapshots and leaves provider 
     owner.dispose();
     assert.deepEqual(dom.mounted(), { environments: 0, styles: 0, active: false });
     assert.equal(list.listenerCount(), 0);
+    assert.equal(selection.listenerCount(), 0);
     assert.equal(providerControls.isConnected, true);
     assert.equal(foreignStyles.isConnected, true);
     assert.equal(effort.listenerCount('click'), 1);
