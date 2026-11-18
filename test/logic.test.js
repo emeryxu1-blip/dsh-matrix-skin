@@ -27,117 +27,158 @@ test('client requests only the local sessions snapshot service', () => {
   assert.deepEqual(inject, ['sessions']);
 });
 
-test('the migrated visual stylesheet stays byte-identical to the reviewed UI', () => {
-  assert.equal(matrixCss.length, 21799);
-  assert.equal(
-    createHash('sha256').update(matrixCss).digest('hex'),
-    '0f7cd6ec8ea84fb0ac2f7f4279ce96eb722c4e48f0aecd39b59f26de58e5b1bf',
-  );
-});
+const cssRules = [...matrixCss.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  .map(([, selectors, body]) => ({
+    selectors: selectors.trim(),
+    declarations: Object.fromEntries([...body.matchAll(/([\w-]+)\s*:\s*([^;{}]+);/g)]
+      .map(([, property, value]) => [property, value.trim()])),
+  }));
 
-test('composer context boxes share the Todo surface treatment', () => {
-  const cssRules = [...matrixCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
-  const rule = (selector) => cssRules.find(([, selectors]) => selectors.trim() === selector) ?? [];
+function ruleFor(selector) {
+  const rule = cssRules.find((entry) => entry.selectors === selector);
+  assert.ok(rule, `Missing CSS rule: ${selector}`);
+  return rule.declarations;
+}
 
-  const [, , dockTokens = ''] = rule(
-    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"]',
-  );
-  assert.match(dockTokens, /--dsw-specific-tip:\s*#030504;/);
-  assert.match(dockTokens, /--dsw-alias-border-l1:\s*rgba\(67,255,145,\.2\);/);
+function themeTokens(dark) {
+  const generic = ruleFor('body.dsh-matrix-skin-active');
+  const theme = ruleFor(dark
+    ? 'body.dsh-matrix-skin-active[data-ds-dark-theme]'
+    : 'body.dsh-matrix-skin-active:not([data-ds-dark-theme])');
+  return { ...generic, ...theme };
+}
 
-  const [, dockSelectors = '', dockSurface = ''] = cssRules.find(([, selectors]) => (
-    selectors.includes('[data-goal-bar] > :first-child')
-  )) ?? [];
-  assert.deepEqual(dockSelectors.split(',').map((selector) => selector.trim()), [
-    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > :not([data-goal-bar]):not([data-queue-dock])',
-    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > [data-goal-bar] > :first-child',
-    'body.dsh-matrix-skin-active [data-slot="conversation.input.dock"] > [data-queue-dock] > :first-child',
-  ]);
-  assert.match(dockSurface, /border-color:\s*rgba\(67,255,145,\.2\)\s*!important;/);
-  assert.match(dockSurface, /background:\s*#030504\s*!important;/);
-  assert.match(dockSurface, /box-shadow:\s*inset 2px 0 rgba\(67,255,145,\.42\), 0 10px 24px rgba\(0,0,0,\.28\);/);
-  assert.doesNotMatch(
-    matrixCss,
-    /\[data-slot="conversation\.input\.dock"\]\s*>\s*\*\s*\{/,
-  );
-
-  const [, , noticeSurface = ''] = rule(
-    'body.dsh-matrix-skin-active [data-slot="conversation.composer.bar"] [role="status"]',
-  );
-  assert.match(noticeSurface, /box-sizing:\s*border-box;/);
-  assert.match(noticeSurface, /border:\s*1px solid rgba\(67,255,145,\.2\);/);
-  assert.match(noticeSurface, /border-radius:\s*12px;/);
-  assert.match(noticeSurface, /background:\s*#030504\s*!important;/);
-
-  const [, , errorNotice = ''] = rule(
-    'body.dsh-matrix-skin-active [data-slot="conversation.composer.bar"] [role="status"][class*="_noticeError"]',
-  );
-  assert.match(errorNotice, /border-color:\s*rgba\(255,101,122,\.24\);/);
-  assert.match(errorNotice, /box-shadow:\s*inset 2px 0 var\(--dsh-matrix-danger\)/);
-});
-
-test('composer paints draft text once through the backdrop layer', () => {
-  assert.doesNotMatch(matrixCss, /:is\(button, input, textarea,/);
-  assert.doesNotMatch(matrixCss, /:is\(textarea, input, \[contenteditable="true"\]\)/);
-  assert.match(
-    matrixCss,
-    /\[data-input-backdrop\]\s*\{[^}]*color:\s*var\(--dsh-matrix-bright\)\s*!important;/s,
-  );
-  assert.match(
-    matrixCss,
-    /\[data-input-scroll\] textarea\s*\{[^}]*color:\s*transparent\s*!important;[^}]*caret-color:\s*var\(--dsh-matrix-green\);/s,
-  );
-  const textareaRules = [...matrixCss.matchAll(/([^{}]*textarea[^{}]*)\{([^{}]*)\}/g)]
-    .filter(([, selector]) => !selector.includes('::placeholder'));
-  assert.ok(textareaRules.length > 0);
-  for (const [, selector, declarations] of textareaRules) {
-    assert.doesNotMatch(declarations, /font-family\s*:/, `${selector.trim()} must preserve native layer metrics`);
-    const colors = [...declarations.matchAll(/(?:^|;)\s*color:\s*([^;]+)/g)];
-    assert.ok(
-      colors.every(([, value]) => value.trim().startsWith('transparent')),
-      `${selector.trim()} must not paint textarea text`,
-    );
+function resolveToken(value, tokens) {
+  for (let depth = 0; depth < 8 && value?.startsWith('var('); depth += 1) {
+    value = tokens[value.match(/^var\((--[\w-]+)\)$/)?.[1]];
   }
+  assert.match(value ?? '', /^#[\da-f]{6}$/i, 'Contrast checks require a resolved solid RGB color');
+  return value;
+}
+
+function luminance(hex) {
+  const channels = hex.slice(1).match(/../g).map((channel) => parseInt(channel, 16) / 255)
+    .map((value) => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+  return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+}
+
+function contrast(foreground, background) {
+  const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (values[0] + .05) / (values[1] + .05);
+}
+
+function mediaBlock(condition) {
+  const match = [...matrixCss.matchAll(/@media([^{}]+)\{/g)]
+    .find((entry) => entry[1].includes(condition));
+  assert.ok(match, `Missing media condition: ${condition}`);
+  const start = match.index + match[0].length;
+  let depth = 1;
+  let end = start;
+  while (end < matrixCss.length && depth) {
+    if (matrixCss[end] === '{') depth += 1;
+    if (matrixCss[end] === '}') depth -= 1;
+    end += 1;
+  }
+  assert.equal(depth, 0, 'Media block must be balanced');
+  return matrixCss.slice(start, end - 1);
+}
+
+test('dark surfaces stay conditional and native light surfaces remain available', () => {
+  const light = themeTokens(false);
+  assert.ok(themeTokens(true)['--dsw-alias-bg-base']);
+  for (const [name] of Object.entries(light)) {
+    assert.doesNotMatch(name, /^--dsw-alias-bg-/, 'Light mode must keep native surface colors');
+  }
+  assert.doesNotMatch(matrixCss, /color-scheme\s*:\s*dark/);
+  assert.doesNotMatch(matrixCss, /background(?:-color)?\s*:[^;]*!important/);
+  assert.ok(contrast(resolveToken(light['--dsh-matrix-accent'], light), '#ffffff') >= 4.5);
 });
 
-test('code blocks do not paint a redundant backdrop behind their text', () => {
-  assert.doesNotMatch(
-    matrixCss,
-    /\[data-chat-flow-kind="assistant-step"\]\s+code\s*\{[^}]*background(?:-color)?\s*:/s,
-  );
-  assert.match(
-    matrixCss,
-    /\[data-chat-flow-kind="assistant-step"\]\s+:not\(pre\)\s*>\s*code\s*\{[^}]*background-color:\s*#07100b;/s,
-  );
-});
-
-test('sent and pending prompts decorate only the native bubble', () => {
-  const cssRules = [...matrixCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
-  const [, surfaceSelectors = '', surfaceDeclarations = ''] = cssRules.find(([, selectors]) => (
-    selectors.includes('[class*="_userStack"] > [class*="_bubble"]')
-  )) ?? [];
-  assert.deepEqual(surfaceSelectors.split(',').map((selector) => selector.trim()), [
-    'body.dsh-matrix-skin-active [data-message-bubble]',
-    'body.dsh-matrix-skin-active [data-chat-flow-kind="user"] [class*="_userStack"] > [class*="_bubble"]',
-    'body.dsh-matrix-skin-active [data-chat-flow-kind="steering"] [class*="_userStack"] > [class*="_bubble"]',
-    'body.dsh-matrix-skin-active [data-pending-steering] [class*="_userStack"] > [class*="_bubble"]',
-  ]);
-  assert.match(surfaceDeclarations, /border:\s*1px solid rgba\(114,\s*255,\s*226,\s*\.26\);/);
-  assert.match(surfaceDeclarations, /background:\s*#06100b\s*!important;/);
-  assert.match(surfaceDeclarations, /border-radius:\s*3px 15px 3px 15px\s*!important;/);
-
-  for (const [rule, selectors, declarations] of cssRules) {
-    const targetsBareStack = selectors.split(',').some((selector) => (
-      /\[class\*="_userStack"\]\s*$/.test(selector.trim())
-    ));
-    if (targetsBareStack) {
-      assert.doesNotMatch(
-        declarations,
-        /(?:^|;)\s*(?:border(?:-[\w-]+)?|background(?:-[\w-]+)?|box-shadow)\s*:/,
-        `${rule.trim()} must remain a layout-only wrapper`,
-      );
+test('declared dark text tiers maintain readable contrast on every solid theme layer', () => {
+  const tokens = themeTokens(true);
+  const surfaces = ['base', 'layer-1', 'layer-2', 'layer-3'];
+  const labels = ['primary', 'secondary', 'tertiary', 'caption', 'dimmed'];
+  for (const surface of surfaces) {
+    const background = resolveToken(tokens[`--dsw-alias-bg-${surface}`], tokens);
+    for (const label of labels) {
+      const foreground = resolveToken(tokens[`--dsw-alias-label-${label}`], tokens);
+      assert.ok(contrast(foreground, background) >= 4.5,
+        `${label} text must reach 4.5:1 on ${surface}`);
     }
   }
+});
+
+test('focus and selected text stay visible in both appearances', () => {
+  const focus = cssRules.find((entry) => entry.selectors.includes(':focus-visible')
+    && entry.declarations.outline);
+  assert.ok(focus);
+  assert.match(focus.declarations.outline, /^2px solid var\(--dsh-matrix-accent\)$/);
+  for (const control of ['button', 'input', 'textarea', 'select', 'a']) {
+    assert.ok(focus.selectors.includes(control), `${control} must receive keyboard focus styling`);
+  }
+  const selection = ruleFor('body.dsh-matrix-skin-active ::selection');
+  for (const dark of [false, true]) {
+    const tokens = themeTokens(dark);
+    const foreground = resolveToken(selection.color, tokens);
+    const background = resolveToken(selection.background, tokens);
+    assert.ok(contrast(foreground, background) >= 4.5, 'Selected text must remain readable');
+    const accent = resolveToken(tokens['--dsh-matrix-accent'], tokens);
+    const surface = dark ? resolveToken(tokens['--dsw-alias-bg-layer-3'], tokens) : '#ffffff';
+    assert.ok(contrast(accent, surface) >= 3, 'Focus outline must remain distinct from its surface');
+  }
+});
+
+test('native typography, layout, reasoning disclosure, and composer text layers remain untouched', () => {
+  const geometryOrTypography = /^(?:font(?:-[\w-]+)?|line-height|letter-spacing|text-transform|white-space|word-break|padding(?:-[\w-]+)?|margin(?:-[\w-]+)?|(?:min-|max-)?(?:width|height)|position|overflow(?:-[\w-]+)?)$/;
+  for (const { selectors, declarations } of cssRules) {
+    if (!selectors.includes('body.dsh-matrix-skin-active')) continue;
+    if (selectors.includes('.dsh-matrix-environment')) continue;
+    for (const property of Object.keys(declarations)) {
+      assert.doesNotMatch(property, geometryOrTypography,
+        `${selectors} must preserve native ${property}`);
+    }
+    if (/textarea|data-input-backdrop|data-input-scroll/.test(selectors)) {
+      assert.ok(Object.keys(declarations).every((property) => property.startsWith('outline')),
+        'Native textarea/backdrop painting must not be overridden');
+    }
+  }
+  assert.doesNotMatch(matrixCss, /data-matrix-thinking|thinkBody|data-disclosure-header/);
+  assert.doesNotMatch(matrixCss, /scrollbar-(?:width|color)\s*:/);
+});
+
+test('syntax, terminal, diff, warning, and error semantics retain their native styles', () => {
+  for (const { declarations } of cssRules) {
+    for (const property of Object.keys(declarations)) {
+      assert.doesNotMatch(property,
+        /^--(?:shiki-|terminal-|dsw-alias-(?:code-diff-|state-(?:error|warn|success|done)-))/);
+    }
+  }
+  assert.doesNotMatch(matrixCss, /(?:\[data-variant|\[data-error|\.xterm|\[class\*=["'](?:_markdown|_card))/);
+  for (const { selectors } of cssRules) {
+    assert.doesNotMatch(selectors, /\b(?:pre|code)(?=\s|:|,|$)/);
+  }
+});
+
+test('decorative rain cannot overlay working surfaces or add synthetic UI labels', () => {
+  const environment = ruleFor('.dsh-matrix-environment');
+  assert.equal(environment.display, 'none');
+  assert.equal(environment.position, 'absolute');
+  assert.equal(environment['z-index'], '-1');
+  assert.equal(environment['pointer-events'], 'none');
+  assert.equal(ruleFor('.dsh-matrix-environment[data-matrix-decorative="true"]').display, 'block');
+  const rain = ruleFor('.dsh-matrix-rain');
+  assert.ok(Number(rain.opacity) <= .1, 'Rain must stay quieter than reading content');
+  assert.doesNotMatch(matrixCss, /text-shadow\s*:|drop-shadow\(|mix-blend-mode\s*:|content\s*:/);
+  assert.doesNotMatch(matrixCss, /dsh-matrix-hud|SECURE_INPUT_CHANNEL|COGNITION_STREAM/);
+});
+
+test('motion, forced-color, compact-screen, and print preferences hide decorative rain', () => {
+  for (const condition of ['prefers-reduced-motion: reduce', 'forced-colors: active', 'max-width: 640px', 'print']) {
+    assert.match(mediaBlock(condition), /\.dsh-matrix-environment[^{}]*\{[^}]*display:\s*none/,
+      `${condition} must suppress decorative rain`);
+  }
+  assert.match(mediaBlock('forced-colors: active'), /display:\s*none/);
+  assert.match(matrixCss, /@media\s*\(forced-colors: active\)\s*\{[\s\S]*?outline-color:\s*Highlight;/);
 });
 
 test('preserves provider-supplied reasoning verbatim', () => {

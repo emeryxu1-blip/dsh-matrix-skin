@@ -200,6 +200,20 @@ class FakeElement extends FakeEventTarget {
   matches(selector) {
     const selectors = selector.split(',').map((part) => part.trim());
     return selectors.some((part) => {
+      if (part === '[data-slot="main.conversation"] [data-phase="hero"]') {
+        return this.attributes.get('data-phase') === 'hero'
+          && Boolean(this.closest('[data-slot="main.conversation"]'));
+      }
+      if (part === '[data-slot="main.conversation"]') return this.attributes.get('data-slot') === 'main.conversation';
+      if (part === '[data-slot="rightbar"]') return this.attributes.get('data-slot') === 'rightbar';
+      if (part === '[data-rightbar-collapsed]') return this.attributes.has('data-rightbar-collapsed');
+      if (part === '[role="dialog"]') return this.attributes.get('role') === 'dialog';
+      if (part === '[role="menu"]') return this.attributes.get('role') === 'menu';
+      if (part === '[role="listbox"]') return this.attributes.get('role') === 'listbox';
+      if (part === '[data-trigger-menu]') return this.attributes.has('data-trigger-menu');
+      if (part === '[data-composer-card]') return this.attributes.has('data-composer-card');
+      if (part === '[data-composer-placeholder]') return this.attributes.has('data-composer-placeholder');
+      if (part === '[popover]:popover-open') return this.popoverOpen === true;
       if (part === '[data-variant="think"]') {
         return this.attributes.get('data-variant') === 'think';
       }
@@ -400,6 +414,7 @@ function installFakeDom() {
   };
   const document = new FakeDocument();
   document.body.className = 'host-shell';
+  document.body.setAttribute('data-ds-dark-theme', '');
   const fakeWindow = new FakeEventTarget();
   const mediaQueries = [];
   Object.assign(fakeWindow, {
@@ -467,17 +482,8 @@ function installFakeDom() {
   };
 }
 
-function hudSnapshot(document) {
-  const environment = document.getElementById('dsh-matrix-environment');
-  const hud = environment?.children.find((child) => child.classList.contains('dsh-matrix-hud'));
-  const [eyebrow, source, metrics, status] = hud?.children ?? [];
-  return {
-    matrixSource: environment?.dataset.matrixSource,
-    eyebrow: eyebrow?.textContent,
-    source: source?.textContent,
-    metrics: metrics?.textContent,
-    status: status?.textContent,
-  };
+function environmentSource(document) {
+  return document.getElementById('dsh-matrix-environment')?.dataset.matrixSource;
 }
 
 test('overlapping apply generations keep exactly one session-powered mount', async () => {
@@ -493,22 +499,17 @@ test('overlapping apply generations keep exactly one session-powered mount', asy
     secondGeneration.apply(secondOwner.ctx);
 
     assert.deepEqual(dom.mounted(), { environments: 1, styles: 1, active: true });
-    assert.deepEqual(dom.listenerSnapshot(), { resize: 1, visibility: 1, motion: 1, observers: 2 });
+    assert.deepEqual(dom.listenerSnapshot(), { resize: 1, visibility: 1, motion: 2, observers: 2 });
     assert.equal(firstSessions.list.listenerCount(), 0);
     assert.equal(secondSessions.list.listenerCount(), 1);
     assert.equal(firstSessions.session.subscribeCalls(), 0);
     assert.equal(secondSessions.session.subscribeCalls(), 0);
-    assert.deepEqual(hudSnapshot(dom.document), {
-      matrixSource: 'session',
-      eyebrow: 'DSH // NEURAL RAIN',
-      source: 'SESSION MEMORY BUS',
-      metrics: '41 GLYPHS · 1 SOURCE',
-      status: 'LIVE SIGNAL',
-    });
+    assert.equal(environmentSource(dom.document), 'session');
+    assert.equal(dom.document.querySelectorAll('.dsh-matrix-hud').length, 0);
 
     firstOwner.dispose();
     assert.deepEqual(dom.mounted(), { environments: 1, styles: 1, active: true });
-    assert.deepEqual(dom.listenerSnapshot(), { resize: 1, visibility: 1, motion: 1, observers: 2 });
+    assert.deepEqual(dom.listenerSnapshot(), { resize: 1, visibility: 1, motion: 2, observers: 2 });
     assert.equal(secondSessions.list.listenerCount(), 1);
 
     secondOwner.dispose();
@@ -558,7 +559,7 @@ test('displayed rain adopts a conversation scrollport mounted after plugin start
   try {
     apply(owner.ctx);
     flushCurrentFrames(100);
-    assert.equal(hudSnapshot(dom.document).matrixSource, 'idle');
+    assert.equal(environmentSource(dom.document), 'idle');
 
     const scrollport = dom.document.createElement('main');
     scrollport.setAttribute('data-conversation-scroll', '');
@@ -582,13 +583,8 @@ test('displayed rain adopts a conversation scrollport mounted after plugin start
     }]);
     flushCurrentFrames(150);
 
-    assert.deepEqual(hudSnapshot(dom.document), {
-      matrixSource: 'session',
-      eyebrow: 'DSH // NEURAL RAIN',
-      source: 'SESSION MEMORY BUS',
-      metrics: '50 GLYPHS · 1 SOURCE',
-      status: 'LIVE SIGNAL',
-    });
+    assert.equal(environmentSource(dom.document), 'session');
+    assert.equal(dom.document.querySelectorAll('.dsh-matrix-hud').length, 0);
   } finally {
     owner.dispose();
     dom.restore();
@@ -664,7 +660,7 @@ test('packaged skin supports Desktop 0.2.2 navigation and CSS modules without ch
       dom.frames.delete(id);
       callback(100);
     }
-    assert.equal(hudSnapshot(dom.document).matrixSource, 'session');
+    assert.equal(environmentSource(dom.document), 'session');
     assert.equal(session.reads(), 1);
     assert.equal(session.subscribeCalls(), 0);
     assert.equal(selection.listenerCount(), 1);
@@ -744,7 +740,7 @@ test('a new generation reclaims owner-less legacy artifacts without losing its a
       removedNodes: [],
     }]);
     const contentObserver = FakeMutationObserver.instances.find(({ active, options }) => (
-      active && options?.attributeFilter?.includes('data-matrix-thinking')
+      active && options?.attributeFilter?.includes('data-phase')
     ));
     contentObserver.callback([{
       type: 'attributes',
@@ -758,10 +754,10 @@ test('a new generation reclaims owner-less legacy artifacts without losing its a
       callback(100);
     }
     assert.deepEqual(dom.mounted(), { environments: 1, styles: 1, active: true });
-    assert.equal(row.classList.contains('dsh-matrix-thinking'), true);
-    assert.equal(row.getAttribute('data-matrix-thinking'), 'visible');
-    assert.equal(thinkBody.getAttribute('tabindex'), '0');
-    assert.equal(thinkBody.dataset.matrixFollowBound, 'true');
+    assert.equal(row.classList.contains('dsh-matrix-thinking'), false);
+    assert.equal(row.getAttribute('data-matrix-thinking'), null);
+    assert.equal(thinkBody.getAttribute('tabindex'), '-1');
+    assert.equal(thinkBody.dataset.matrixFollowBound, undefined);
 
     owner.dispose();
     assert.deepEqual(dom.mounted(), { environments: 0, styles: 0, active: false });
@@ -803,7 +799,7 @@ test('disposing while waiting for DOMContentLoaded prevents a delayed mount', ()
   }
 });
 
-test('final cleanup restores host body, styles, and Think state', () => {
+test('native reasoning collapse, focus, and scroll state remain untouched', () => {
   const dom = installFakeDom();
   const hostStyle = dom.document.createElement('style');
   hostStyle.dataset.pluginCss = 'host/styles';
@@ -823,11 +819,12 @@ test('final cleanup restores host body, styles, and Think state', () => {
   try {
     apply(owner.ctx);
     assert.equal(dom.document.body.className, 'host-shell dsh-matrix-skin-active');
-    assert.equal(row.className, 'native-think dsh-matrix-thinking');
-    assert.equal(row.getAttribute('data-matrix-thinking'), 'visible');
-    assert.equal(thinkBody.getAttribute('tabindex'), '0');
-    assert.equal(thinkBody.dataset.matrixFollowBound, 'true');
-    assert.equal(thinkBody.listenerCount('scroll'), 1);
+    assert.equal(row.className, 'native-think');
+    assert.equal(row.getAttribute('data-matrix-thinking'), null);
+    assert.equal(thinkBody.getAttribute('tabindex'), '-1');
+    assert.equal(thinkBody.dataset.matrixFollowBound, undefined);
+    assert.equal(thinkBody.listenerCount('scroll'), 0);
+    assert.equal(thinkBody.scrollTop, 0);
     assert.equal(dom.document.walk().filter(({ tagName }) => tagName === 'STYLE').length, 2);
 
     owner.dispose();
@@ -873,7 +870,7 @@ test('session roster reads the selection once without subscribing to its session
     assert.equal(firstSession.subscribeCalls(), 0);
     assert.equal(secondSession.reads(), 0);
     assert.equal(secondSession.subscribeCalls(), 0);
-    assert.equal(hudSnapshot(dom.document).source, 'SESSION MEMORY BUS');
+    assert.equal(environmentSource(dom.document), 'session');
 
     list.emit({ current: 'selected', ids: ['selected', 'next'], phase: 'ready' });
     assert.equal(firstSession.reads(), 1);
@@ -886,6 +883,238 @@ test('session roster reads the selection once without subscribing to its session
 
     owner.dispose();
     assert.equal(list.listenerCount(), 0);
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+function addHero(dom) {
+  const seat = dom.document.createElement('section');
+  seat.setAttribute('data-slot', 'main.conversation');
+  const hero = dom.document.createElement('div');
+  hero.setAttribute('data-phase', 'hero');
+  hero.clientWidth = 800;
+  hero.clientHeight = 600;
+  seat.appendChild(hero);
+  dom.document.body.appendChild(seat);
+  return hero;
+}
+
+function flushFrames(dom, time = 100) {
+  for (const [id, callback] of [...dom.frames]) {
+    dom.frames.delete(id);
+    callback(time);
+  }
+}
+
+function notifyNativeMutation(target, attributeName = 'data-phase') {
+  const observer = FakeMutationObserver.instances.find(({ active, options }) => active && options?.subtree && options?.attributes);
+  observer.callback([{ type: 'attributes', target, attributeName, addedNodes: [], removedNodes: [] }]);
+}
+
+test('decorative rain stays inside the native empty conversation and pauses on active content or overlays', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  const hero = addHero(dom);
+  try {
+    apply(owner.ctx);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    assert.equal(environment.parentElement, hero);
+    assert.equal(environment.dataset.matrixDecorative, 'true');
+    assert.equal(environment.hidden, false);
+    assert.equal(environment.children.length, 1);
+    assert.equal(environment.children[0].tagName, 'CANVAS');
+    flushFrames(dom);
+    assert.equal(dom.frames.size, 1, 'only the optional rain animation remains scheduled');
+
+    const menu = dom.document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    dom.document.body.appendChild(menu);
+    notifyNativeMutation(menu, 'role');
+    flushFrames(dom, 160);
+    assert.equal(environment.hidden, true);
+    assert.equal(environment.dataset.matrixDecorative, 'false');
+    assert.equal(dom.frames.size, 0, 'opening a native menu stops animation');
+
+    menu.remove();
+    notifyNativeMutation(hero);
+    flushFrames(dom, 200);
+    assert.equal(environment.hidden, false);
+    assert.equal(dom.frames.size, 1);
+
+    const dialog = dom.document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dom.document.body.appendChild(dialog);
+    notifyNativeMutation(dialog, 'aria-modal');
+    flushFrames(dom, 260);
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0, 'settings and other modal dialogs stop animation');
+    dialog.remove();
+
+    hero.setAttribute('data-phase', 'active');
+    notifyNativeMutation(hero);
+    flushFrames(dom, 300);
+    assert.equal(environment.hidden, true);
+    assert.equal(environment.parentElement, dom.document.body);
+    assert.equal(dom.frames.size, 0, 'reading an existing conversation has no animation loop');
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+test('reduced motion and background visibility fully disable decorative animation', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  addHero(dom);
+  try {
+    apply(owner.ctx);
+    flushFrames(dom);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    const motion = dom.mediaQueries[0];
+    motion.matches = true;
+    motion.dispatchEvent({ type: 'change' });
+    assert.equal(environment.hidden, true);
+    assert.equal(environment.dataset.matrixDecorative, 'false');
+    assert.equal(dom.frames.size, 0);
+
+    motion.matches = false;
+    motion.dispatchEvent({ type: 'change' });
+    assert.equal(environment.hidden, false);
+    assert.equal(dom.frames.size, 1);
+    dom.document.hidden = true;
+    dom.document.dispatchEvent({ type: 'visibilitychange' });
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0);
+    dom.document.hidden = false;
+    dom.document.dispatchEvent({ type: 'visibilitychange' });
+    assert.equal(environment.hidden, false);
+    assert.equal(dom.frames.size, 1);
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+test('opening the right sidebar suppresses empty-state decoration', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  const hero = addHero(dom);
+  const frame = dom.document.createElement('div');
+  frame.setAttribute('data-rightbar-collapsed', 'true');
+  const rightbar = dom.document.createElement('div');
+  rightbar.setAttribute('data-slot', 'rightbar');
+  frame.appendChild(rightbar);
+  dom.document.body.appendChild(frame);
+  try {
+    apply(owner.ctx);
+    flushFrames(dom);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    assert.equal(environment.hidden, false);
+    frame.removeAttribute('data-rightbar-collapsed');
+    notifyNativeMutation(frame, 'data-rightbar-collapsed');
+    flushFrames(dom, 200);
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0);
+    assert.equal(environment.parentElement, dom.document.body);
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+test('light theme, narrow viewports, and forced colors keep decoration and its animation disabled', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  addHero(dom);
+  try {
+    apply(owner.ctx);
+    flushFrames(dom);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    dom.document.body.removeAttribute('data-ds-dark-theme');
+    notifyNativeMutation(dom.document.body, 'data-ds-dark-theme');
+    flushFrames(dom, 200);
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0);
+
+    dom.document.body.setAttribute('data-ds-dark-theme', '');
+    notifyNativeMutation(dom.document.body, 'data-ds-dark-theme');
+    flushFrames(dom, 300);
+    assert.equal(environment.hidden, false);
+    dom.fakeWindow.innerWidth = 640;
+    dom.fakeWindow.dispatchEvent({ type: 'resize' });
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0);
+
+    dom.fakeWindow.innerWidth = 1200;
+    dom.fakeWindow.dispatchEvent({ type: 'resize' });
+    assert.equal(environment.hidden, false);
+    const forcedColors = dom.mediaQueries[1];
+    forcedColors.matches = true;
+    forcedColors.dispatchEvent({ type: 'change' });
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0);
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+test('native input-trigger menus, listboxes, and nonmodal dialogs stop rain until dismissed', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  const hero = addHero(dom);
+  try {
+    apply(owner.ctx);
+    flushFrames(dom);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    for (const [attribute, value] of [['data-trigger-menu', ''], ['role', 'listbox'], ['role', 'dialog']]) {
+      const popup = dom.document.createElement('div');
+      popup.setAttribute(attribute, value);
+      dom.document.body.appendChild(popup);
+      notifyNativeMutation(popup, attribute);
+      flushFrames(dom, 200);
+      assert.equal(environment.hidden, true, `${attribute}=${value} must suppress decoration`);
+      assert.equal(dom.frames.size, 0, 'an open native input popup must stop animation');
+      popup.remove();
+      notifyNativeMutation(hero);
+      flushFrames(dom, 300);
+      assert.equal(environment.hidden, false, 'decoration may resume after dismissal');
+      assert.equal(dom.frames.size, 1);
+    }
+  } finally {
+    owner.dispose();
+    dom.restore();
+  }
+});
+
+test('typing a draft suppresses decoration using only the native placeholder marker', () => {
+  const dom = installFakeDom();
+  const owner = effectContext();
+  const hero = addHero(dom);
+  const composer = dom.document.createElement('section');
+  composer.setAttribute('data-composer-card', '');
+  const placeholder = dom.document.createElement('div');
+  placeholder.setAttribute('data-composer-placeholder', '');
+  composer.appendChild(placeholder);
+  hero.appendChild(composer);
+  try {
+    apply(owner.ctx);
+    flushFrames(dom);
+    const environment = dom.document.getElementById('dsh-matrix-environment');
+    assert.equal(environment.hidden, false);
+    placeholder.remove();
+    notifyNativeMutation(composer);
+    flushFrames(dom, 200);
+    assert.equal(environment.hidden, true);
+    assert.equal(dom.frames.size, 0, 'draft editing has no decorative animation');
+    composer.appendChild(placeholder);
+    notifyNativeMutation(composer);
+    flushFrames(dom, 300);
+    assert.equal(environment.hidden, false);
+    assert.equal(dom.frames.size, 1);
   } finally {
     owner.dispose();
     dom.restore();

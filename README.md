@@ -2,28 +2,29 @@
 
 English | [中文](README.zh.md)
 
-> Turn DeepSeek Harness into a focused, black-terminal command deck.
+> A Matrix-inspired appearance that puts reading and everyday work first.
 
-**DSH Matrix Skin** gives the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI a sharp Matrix-inspired identity without getting in the way of real work. Flat near-black surfaces, restrained neon signals, clearer Think panels, and live neural rain make every session feel like an active system rather than another generic chat window.
-
-The rain is not a canned loop: it starts from a bounded local snapshot, then cheaply reuses the newest user text, assistant replies, streaming output, and provider-exposed reasoning that DSH has already rendered. It no longer scans the full session on every update. A brand-new empty DSH starts with the official DeepSeek Harness README as its initial signal.
+**DSH Matrix Skin** adds a quiet green accent and clear dark surfaces to the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI. Version **0.3.0** prioritizes readable text, distinct controls, and the native layout across chat, settings, plugins, menus, tools, and sidebars.
 
 ## Highlights
 
-- Full-shell hacker aesthetic for Chat, Trajectory, the sidebar, tools, and composer
-- Matrix rain powered by bounded tails of the newest text already displayed by DSH
-- Readable terminal treatment for DSH's native Think rows
-- Reduced-motion support and selectable, accessible reasoning text
+- A consistent dark palette with clearly separated surfaces and text tiers
+- Native light appearance retained, with a restrained green accent
+- Native text and code fonts, font-size preferences, spacing, and disclosure controls
+- Existing syntax highlighting, diff colors, error/warning states, and terminal colors preserved
+- Quiet code rain confined to the empty-session hero, away from working content
+- No floating status HUD, scanline overlay, glowing text, or extra composer labels
+- Reduced-motion and forced-colors preferences hide decorative rain
 - Local-only processing with no telemetry or session-content upload
 
-> The plugin can display only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable chain-of-thought.
+> The plugin can use only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable reasoning.
 
 ## Requirements
 
 - DeepSeek Harness Desktop `0.2.2-rc.3` or the matching Web runtime
 - The `desktop` profile for the official app, or `web` for browser use
 
-Version `0.2.0` supports the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
+Version `0.3.0` retains support for the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
 
 ## Provider and plugin independence
 
@@ -64,10 +65,10 @@ Use DSH normally—no plugin configuration is required.
 
 1. Open the Desktop app, or start DSH Web with `dsh web`.
 2. Select or create a session.
-3. Chat as usual; the Matrix feed updates from the newest text already displayed in DSH.
-4. Expand a native **Think** row to use the terminal-style reasoning viewer.
+3. Read and work normally; conversation text, menus, settings, files, previews, and terminals keep native behavior.
+4. Expand or collapse native **Think** rows as usual. Reasoning uses DSH’s font-size preferences and conversation scrolling.
 
-If the session is truly new and empty, the rain uses the official DSH README until conversation text exists.
+Decorative rain appears only in the empty-session hero and is hidden when reduced motion or forced colors is requested. It does not cover active conversations, menus, dialogs, settings, or sidebars. The bounded local text feed uses the official DSH README when no conversation text exists.
 
 ## Verify
 
@@ -131,6 +132,10 @@ Install the checkout into your Web profile with:
 ```bash
 dsh plugin --profile web add -w "$PWD"
 ```
+
+## Readability checks
+
+The regression tests check contrast for the skin’s declared text/surface colors, keyboard-focus visibility, native light appearance, and preservation of native layout, typography, composer text layers, syntax highlighting, and semantic states. These are focused implementation checks, not a claim of complete accessibility or WCAG compliance. Review the assembled DSH interface at its actual window size, font settings, and appearance when changing the palette.
 
 ## Privacy
 
