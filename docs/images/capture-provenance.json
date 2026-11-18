@@ -1,0 +1,62 @@
+{
+  "capture_date": "2026-11-18",
+  "application": "DeepSeek Harness",
+  "application_version": "0.2.2-rc.3",
+  "surface": "Genuine DSH Web UI served by the official bundled runtime, captured in Chrome on macOS",
+  "plugin": "dsh-matrix-skin",
+  "plugin_version": "0.3.0",
+  "plugin_source_commit": "a545c7a6d41a12be653c7a40dab3d5b4acfa6334",
+  "isolation": "Disposable DSH_HOME and synthetic Matrix-Demo workspace; no existing session store or credentials copied. No model call made.",
+  "conversation": "Synthetic seeded session rendered through native DSH components. Displayed timing is seeded sample data, not measured model latency.",
+  "screenshot_processing": "Unmodified viewport captures converted from JPEG to PNG. No UI text, layout, colors, or content edited.",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "native_baseline": "Same synthetic chat with Matrix Skin disabled using the actual plugin toggle.",
+  "video": {
+    "file": "matrix-skin-demo.mp4",
+    "type": "25-second still-capture walkthrough, not continuous screen recording",
+    "scene_seconds": 5,
+    "scenes": [
+      "matrix-chat.png",
+      "matrix-settings.png",
+      "native-chat.png",
+      "matrix-plugin.png",
+      "matrix-home.png"
+    ],
+    "processing": "Exact screenshots placed between labeled header/footer; no screenshot scaling or retouching. No audio."
+  },
+  "screenshots": [
+    {
+      "file": "matrix-chat.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "cd1fa6fe01890274b630ac3466a0a4678676452d77bb0abf215f7d482502f180"
+    },
+    {
+      "file": "matrix-settings.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "28e449f0134c13168ee921323225f3fc08f8da1a9f93c3f35dc0c1f287e30568"
+    },
+    {
+      "file": "native-chat.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "69a567da2d3fca23e4390b15fc73756e816f4cd75aa9f5f5cc0bed1bc48b7c26"
+    },
+    {
+      "file": "matrix-plugin.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "de66063c991cdb5b19ab207ddcba55343570df2bb083ee8d8451d523647c73a5"
+    },
+    {
+      "file": "matrix-home.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "490b3495336a8926d851bd932d0b3c25849940ae4349b1db10ed1d92f2d56d7c"
+    }
+  ]
+}

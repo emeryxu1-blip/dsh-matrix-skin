@@ -6,31 +6,11 @@
 
 **DSH Matrix Skin** 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 桌面和 Web 界面提供克制的绿色强调色与层次清楚的深色表面。**0.3.0** 优先保证聊天、设置、插件、菜单、工具和侧边栏中的文字清晰、控件可辨，并保留原生布局。
 
-## 亮点
+![真实 DSH 对话中的 Matrix Skin 0.3.0](docs/images/matrix-chat.png)
 
-- 深色模式下，文字层级与背景表面保持清楚的对比
-- 保留原生浅色外观，仅加入克制的绿色强调色
-- 保留原生文字和代码字体、字号偏好、间距与展开/收起操作
-- 保留语法高亮、差异颜色、错误/警告状态与终端颜色
-- 代码雨仅出现在空会话的欢迎区域，避开实际工作内容
-- 移除悬浮状态面板、扫描线、文字光晕和额外的输入框标签
-- 系统要求减少动态效果或使用强制颜色时，隐藏装饰性代码雨
-- 仅在本地处理，不包含遥测，也不会向外上传会话内容
+**有 Matrix 氛围，也能认真写代码。** 独立社区插件 · MIT · 插件不含遥测
 
-> 插件只能使用模型提供商实际发送给 DSH 的 reasoning，无法恢复隐藏、脱敏或未公开的推理内容。
-
-## 环境要求
-
-- DeepSeek Harness Desktop `0.2.2-rc.3` 或对应版本的 Web 运行时
-- 官方桌面应用使用 `desktop` profile，浏览器版本使用 `web` profile
-
-`0.3.0` 继续支持桌面版 Session Controller、独立的导航状态、当前 CSS Modules 类名格式和原生消息气泡标记，同时保留旧版 `0.1.0-rc.6`、`0.1.1-rc.2`、`0.1.5-rc.1` 的 Web 合约兼容性。插件只借用当前会话，不额外保留会话或打开历史，也不会安装已废弃的 client runtime。
-
-## 提供商与插件独立性
-
-Matrix Skin 只改变外观。模型/提供商下拉菜单、Effort 选项、默认值、请求参数、认证和重试仍由 DSH 及单独安装的提供商插件负责。使用 DeepSeek 官方 API 时保留 DSH 原生选项；皮肤不包含公司地址、网络检测、模型目录或网关设置。
-
-独立的网关/重试插件可以单独启用、停用或卸载。Matrix 仅读取会话内容，使用自己的 `dsh-matrix-*` DOM 标记、样式元素和清理生命周期，不替换其他插件的控件，也不修改提供商服务。
+[桌面安装](#安装并启用) · [截图与演示](#截图与演示) · [0.3.0 版本](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.0)
 
 ## 安装并启用
 
@@ -58,6 +38,44 @@ dsh web
 ```
 
 安装会自动启用皮肤。DSH Web 启动后，打开页面或强制刷新即可。仓库已经包含构建后的客户端文件，安装时不需要额外执行构建脚本。
+
+## 亮点
+
+- 深色模式下，文字层级与背景表面保持清楚的对比
+- 保留原生浅色外观，仅加入克制的绿色强调色
+- 保留原生文字和代码字体、字号偏好、间距与展开/收起操作
+- 保留语法高亮、差异颜色、错误/警告状态与终端颜色
+- 代码雨仅出现在空会话的欢迎区域，避开实际工作内容
+- 移除悬浮状态面板、扫描线、文字光晕和额外的输入框标签
+- 系统要求减少动态效果或使用强制颜色时，隐藏装饰性代码雨
+- 仅在本地处理，不包含遥测，也不会向外上传会话内容
+
+> 插件只能使用模型提供商实际发送给 DSH 的 reasoning，无法恢复隐藏、脱敏或未公开的推理内容。
+
+## 截图与演示
+
+以下为 macOS 上真实 DeepSeek Harness `0.2.2-rc.3` Web 界面的截图，使用隔离的演示 profile、虚构内容和实际运行的 Matrix Skin 插件。Desktop `0.2.2-rc.3` 也已单独检查；这些浏览器截图不展示原生桌面窗口外框。
+
+| 原生 DSH（皮肤停用） | Matrix Skin 0.3.0 |
+| --- | --- |
+| ![原生 DSH 对话](docs/images/native-chat.png) | ![启用 Matrix Skin 的同一对话](docs/images/matrix-chat.png) |
+
+![启用 Matrix Skin 后的原生外观设置](docs/images/matrix-settings.png)
+
+[观看 25 秒演示](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.0/matrix-skin-demo.mp4)。视频由真实界面的静态截图编排而成，并非连续屏幕录像。[截图说明](docs/images/capture-provenance.json)。
+
+## 环境要求
+
+- DeepSeek Harness Desktop `0.2.2-rc.3` 或对应版本的 Web 运行时
+- 官方桌面应用使用 `desktop` profile，浏览器版本使用 `web` profile
+
+`0.3.0` 继续支持桌面版 Session Controller、独立的导航状态、当前 CSS Modules 类名格式和原生消息气泡标记，同时保留旧版 `0.1.0-rc.6`、`0.1.1-rc.2`、`0.1.5-rc.1` 的 Web 合约兼容性。插件只借用当前会话，不额外保留会话或打开历史，也不会安装已废弃的 client runtime。
+
+## 提供商与插件独立性
+
+Matrix Skin 只改变外观。模型/提供商下拉菜单、Effort 选项、默认值、请求参数、认证和重试仍由 DSH 及单独安装的提供商插件负责。使用 DeepSeek 官方 API 时保留 DSH 原生选项；皮肤不包含公司地址、网络检测、模型目录或网关设置。
+
+独立的网关/重试插件可以单独启用、停用或卸载。Matrix 仅读取会话内容，使用自己的 `dsh-matrix-*` DOM 标记、样式元素和清理生命周期，不替换其他插件的控件，也不修改提供商服务。
 
 ## 使用
 

@@ -6,31 +6,11 @@ English | [中文](README.zh.md)
 
 **DSH Matrix Skin** adds a quiet green accent and clear dark surfaces to the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI. Version **0.3.0** prioritizes readable text, distinct controls, and the native layout across chat, settings, plugins, menus, tools, and sidebars.
 
-## Highlights
+![Matrix Skin 0.3.0 in a real DSH conversation](docs/images/matrix-chat.png)
 
-- A consistent dark palette with clearly separated surfaces and text tiers
-- Native light appearance retained, with a restrained green accent
-- Native text and code fonts, font-size preferences, spacing, and disclosure controls
-- Existing syntax highlighting, diff colors, error/warning states, and terminal colors preserved
-- Quiet code rain confined to the empty-session hero, away from working content
-- No floating status HUD, scanline overlay, glowing text, or extra composer labels
-- Reduced-motion and forced-colors preferences hide decorative rain
-- Local-only processing with no telemetry or session-content upload
+**The Matrix look, built for everyday coding.** Independent community plugin · MIT · No plugin telemetry
 
-> The plugin can use only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable reasoning.
-
-## Requirements
-
-- DeepSeek Harness Desktop `0.2.2-rc.3` or the matching Web runtime
-- The `desktop` profile for the official app, or `web` for browser use
-
-Version `0.3.0` retains support for the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
-
-## Provider and plugin independence
-
-Matrix Skin changes presentation only. Model/provider dropdowns, Effort choices, defaults, request parameters, authentication, and retries remain owned by DSH and any separately installed provider plugin. Using the official DeepSeek API keeps DSH's native options; this skin contains no company endpoints, network checks, model catalogs, or gateway setup.
-
-A separate gateway/retry plugin can be enabled, disabled, or removed independently. Matrix uses only the read-only session feed and its own `dsh-matrix-*` DOM markers, style element, and cleanup owner; it does not replace another plugin's controls or patch provider services.
+[Install in Desktop](#install-and-enable) · [Screenshots and demo](#screenshots-and-demo) · [Version 0.3.0](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.0)
 
 ## Install and enable
 
@@ -58,6 +38,44 @@ dsh web
 ```
 
 Installation enables the skin automatically. Open or hard-refresh the DSH Web UI after it starts. The repository ships its built client artifacts, so installation does not require a post-install build.
+
+## Highlights
+
+- A consistent dark palette with clearly separated surfaces and text tiers
+- Native light appearance retained, with a restrained green accent
+- Native text and code fonts, font-size preferences, spacing, and disclosure controls
+- Existing syntax highlighting, diff colors, error/warning states, and terminal colors preserved
+- Quiet code rain confined to the empty-session hero, away from working content
+- No floating status HUD, scanline overlay, glowing text, or extra composer labels
+- Reduced-motion and forced-colors preferences hide decorative rain
+- Local-only processing with no telemetry or session-content upload
+
+> The plugin can use only reasoning that the model provider sends to DSH. It cannot recover hidden, redacted, or unavailable reasoning.
+
+## Screenshots and demo
+
+These are genuine DeepSeek Harness `0.2.2-rc.3` Web UI captures on macOS, using an isolated demo profile with fictional content and the actual Matrix Skin plugin. Desktop `0.2.2-rc.3` was also inspected separately; these browser captures do not depict native desktop window chrome.
+
+| Native DSH (skin disabled) | Matrix Skin 0.3.0 |
+| --- | --- |
+| ![Native DSH conversation](docs/images/native-chat.png) | ![Same conversation with Matrix Skin](docs/images/matrix-chat.png) |
+
+![Native appearance settings with Matrix Skin enabled](docs/images/matrix-settings.png)
+
+[Watch the 25-second walkthrough](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.0/matrix-skin-demo.mp4). The video is a labeled walkthrough assembled from actual UI still captures. [Capture details](docs/images/capture-provenance.json).
+
+## Requirements
+
+- DeepSeek Harness Desktop `0.2.2-rc.3` or the matching Web runtime
+- The `desktop` profile for the official app, or `web` for browser use
+
+Version `0.3.0` retains support for the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
+
+## Provider and plugin independence
+
+Matrix Skin changes presentation only. Model/provider dropdowns, Effort choices, defaults, request parameters, authentication, and retries remain owned by DSH and any separately installed provider plugin. Using the official DeepSeek API keeps DSH's native options; this skin contains no company endpoints, network checks, model catalogs, or gateway setup.
+
+A separate gateway/retry plugin can be enabled, disabled, or removed independently. Matrix uses only the read-only session feed and its own `dsh-matrix-*` DOM markers, style element, and cleanup owner; it does not replace another plugin's controls or patch provider services.
 
 ## Use
 
