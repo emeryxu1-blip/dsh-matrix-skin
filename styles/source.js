@@ -795,7 +795,8 @@ export function bindSessionRoster(ctx, onSources) {
 
   // Desktop 0.2.2 navigation lives in uiSession; list.current is legacy.
   // Borrow the selected binding without retaining sessions or opening history.
-  const selected = ctx?.uiSession?.adapter?.current;
+  const uiSession = typeof ctx?.get === 'function' ? ctx.get('uiSession') : ctx?.uiSession;
+  const selected = uiSession?.adapter?.current;
   const selection = selected?.getSnapshot && selected?.subscribe ? selected : undefined;
   let currentId;
   let currentSession;

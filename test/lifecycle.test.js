@@ -606,10 +606,13 @@ test('packaged skin supports Desktop 0.2.2 navigation and CSS modules without ch
     running: false, removed: false,
   }));
   const owner = effectContext({ list: list.store, binding: () => ({ session: session.store }) });
-  owner.ctx.uiSession = { adapter: { current: selection.store } };
+  owner.ctx.get = (name) => {
+    assert.equal(name, 'uiSession');
+    return { adapter: { current: selection.store } };
+  };
   const context = new Proxy(owner.ctx, {
     get(target, property) {
-      assert.ok(property === 'sessions' || property === 'uiSession' || property === 'effect', `unexpected service: ${String(property)}`);
+      assert.ok(property === 'sessions' || property === 'get' || property === 'effect', `unexpected service: ${String(property)}`);
       return target[property];
     },
     set() { assert.fail('a skin must not change provider services'); },
