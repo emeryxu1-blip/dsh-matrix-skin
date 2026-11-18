@@ -2,61 +2,155 @@
   "capture_date": "2026-11-18",
   "application": "DeepSeek Harness",
   "application_version": "0.2.2-rc.3",
-  "surface": "Genuine DSH Web UI served by the official bundled runtime, captured in Chrome on macOS",
+  "surface": "Genuine DSH Web UI served by the official installed bundled runtime, captured page-only in Chrome on macOS via CUA. These assets do not depict native desktop window chrome.",
   "plugin": "dsh-matrix-skin",
-  "plugin_version": "0.3.0",
-  "plugin_source_commit": "a545c7a6d41a12be653c7a40dab3d5b4acfa6334",
-  "isolation": "Disposable DSH_HOME and synthetic Matrix-Demo workspace; no existing session store or credentials copied. No model call made.",
-  "conversation": "Synthetic seeded session rendered through native DSH components. Displayed timing is seeded sample data, not measured model latency.",
-  "screenshot_processing": "Unmodified viewport captures converted from JPEG to PNG. No UI text, layout, colors, or content edited.",
+  "plugin_version": "0.3.1",
+  "plugin_source": {
+    "kind": "Local working-tree build of 0.3.1 before the release tag was created",
+    "verification": "The hashes below identify the actual built files used by the isolated demo and can be compared against the release-tag files.",
+    "sha256": {
+      "lib/client.js": "b773224e90484633ec827c5640f94dc0d14c90449aade9a2c0c2e10d580e06e4",
+      "styles/matrix.css": "08df79fe4c84519a41dafd30984a9044b5d959723b0f734e5acf1614d4c35668"
+    }
+  },
+  "isolation": "New disposable DSH_HOME and fictional Matrix-Demo workspace. No existing user profiles, session stores, API credentials, or account data were copied. Only a deliberately invalid demo API-key environment value was present; no model call was made.",
+  "conversation": "Synthetic seeded session rendered through native DSH components. Displayed timing, example code values, sample checklist results, and conversation text are fictional demonstration data, not measured model output or performance.",
   "viewport": {
     "width": 1440,
     "height": 1000
   },
-  "native_baseline": "Same synthetic chat with Matrix Skin disabled using the actual plugin toggle.",
+  "screenshot_processing": "Real page captures converted from JPEG to PNG without changing UI content, typography, layout, colors, or dimensions. Four stills are exact frames from the continuous recording; the remaining three are ordinary CUA screenshots.",
+  "native_baseline": "Same fictional chat and viewport with the actual Matrix bundle toggle disabled and the isolated runtime restarted. The page was checked to have neither the Matrix active class nor its canvas before capturing. Matrix was re-enabled and the isolated runtime restarted afterward.",
   "video": {
     "file": "matrix-skin-demo.mp4",
-    "type": "25-second still-capture walkthrough, not continuous screen recording",
-    "scene_seconds": 5,
+    "sha256": "10e5dbf9d96e5e5ce3defaa07b58a16c86ae0f9e0656651446b6020de83852c7",
+    "type": "Continuous actual-motion page recording",
+    "capture_api": "CUA tab cdp capability: Page.startScreencast + Page.screencastFrame events + Page.screencastFrameAck",
+    "source_frame_count": 419,
+    "source_first_timestamp": 1794988460.289696,
+    "source_last_timestamp": 1794988484.796728,
+    "source_first_monotonic_timestamp": 175116.542657,
+    "source_last_monotonic_timestamp": 175141.051062,
+    "source_elapsed_seconds": 24.507,
+    "effective_capture_fps": 17.056,
     "scenes": [
-      "matrix-chat.png",
-      "matrix-settings.png",
-      "native-chat.png",
-      "matrix-plugin.png",
-      "matrix-home.png"
+      {
+        "phase": "empty-conversation rain",
+        "observed_timestamp": 1794988460.278,
+        "offset_seconds": -0.012
+      },
+      {
+        "phase": "active chat with native code and table",
+        "observed_timestamp": 1794988465.762,
+        "offset_seconds": 5.472
+      },
+      {
+        "phase": "native model menu readability",
+        "observed_timestamp": 1794988475.579,
+        "offset_seconds": 15.289
+      },
+      {
+        "phase": "active chat with unsent draft",
+        "observed_timestamp": 1794988481.48,
+        "offset_seconds": 21.19
+      }
     ],
-    "processing": "Exact screenshots placed between labeled header/footer; no screenshot scaling or retouching. No audio."
+    "processing": "Frame timestamps set variable-frame-rate playback; the complete requested 1440×1000 viewport is encoded without scaling. No UI edits, motion synthesis, slide interpolation, or audio.",
+    "audio": false,
+    "encoded_duration_seconds": 24.48,
+    "encoded_frame_count": 420,
+    "encoding_note": "Concat encoding repeats the final source frame once and quantizes timestamps to the input time base; it does not synthesize intermediate motion."
+  },
+  "gif": {
+    "file": "matrix-rain.gif",
+    "sha256": "9484308ba7a4cc79a1a5b2bf10b81242c2dde9b72917ea6593484d9f90b4f377",
+    "bytes": 1253096,
+    "width": 960,
+    "height": 666,
+    "frames": 96,
+    "duration_seconds": 8.01,
+    "source_video_offset_seconds": 6,
+    "phase": "Active chat with native prose, code, table, and continuously moving rain",
+    "processing": "Eight seconds of the active chat phase beginning 6 seconds into the recording, sampled at 12 fps and proportionally scaled to 960 pixels wide using a 128-color palette. Actual recorded motion; no interpolated frames."
   },
   "screenshots": [
     {
-      "file": "matrix-chat.png",
+      "file": "matrix-home.png",
+      "description": "Native empty conversation with Matrix rain",
+      "source": "Unmodified real CDP screencast frame converted from JPEG to PNG",
+      "source_frame": "00041.jpg",
+      "source_frame_sequence": 118,
+      "source_frame_timestamp": 1794988462.313968,
+      "recording_offset_seconds": 2.024272,
       "width": 1440,
       "height": 1000,
-      "sha256": "cd1fa6fe01890274b630ac3466a0a4678676452d77bb0abf215f7d482502f180"
+      "sha256": "e614f12b1af42c6b6ebcb66f9a6183e45cc132ae7bdbdd227bc134d05c956598"
+    },
+    {
+      "file": "matrix-chat.png",
+      "description": "Active conversation with Matrix rain, native prose, syntax-highlighted code, and table",
+      "source": "Unmodified real CDP screencast frame converted from JPEG to PNG",
+      "source_frame": "00135.jpg",
+      "source_frame_sequence": 213,
+      "source_frame_timestamp": 1794988468.280597,
+      "recording_offset_seconds": 7.990901,
+      "width": 1440,
+      "height": 1000,
+      "sha256": "2fdc3fcad38210d08ab13219316f89da0cc190c4f9145cdfef4126080621badb"
+    },
+    {
+      "file": "matrix-menu.png",
+      "description": "Native model and effort popup while Matrix rain continues",
+      "source": "Unmodified real CDP screencast frame converted from JPEG to PNG",
+      "source_frame": "00282.jpg",
+      "source_frame_sequence": 361,
+      "source_frame_timestamp": 1794988476.297127,
+      "recording_offset_seconds": 16.007431,
+      "width": 1440,
+      "height": 1000,
+      "sha256": "d0ce489715683562a390d19f40c924071148f601d9644841a0430c097fff3c91"
+    },
+    {
+      "file": "matrix-typing.png",
+      "description": "Unsent draft in the native composer while Matrix rain continues",
+      "source": "Unmodified real CDP screencast frame converted from JPEG to PNG",
+      "source_frame": "00363.jpg",
+      "source_frame_sequence": 445,
+      "source_frame_timestamp": 1794988482.297204,
+      "recording_offset_seconds": 22.007508,
+      "width": 1440,
+      "height": 1000,
+      "sha256": "92641219592d2ea83cc983c52f41f0854e2c68300e9437972299b143b37fdb6a"
     },
     {
       "file": "matrix-settings.png",
+      "description": "Native appearance settings with Matrix enabled and rain continuing around the protected dialog",
+      "source": "Unmodified CUA tab screenshot converted from JPEG to PNG",
       "width": 1440,
       "height": 1000,
-      "sha256": "28e449f0134c13168ee921323225f3fc08f8da1a9f93c3f35dc0c1f287e30568"
-    },
-    {
-      "file": "native-chat.png",
-      "width": 1440,
-      "height": 1000,
-      "sha256": "69a567da2d3fca23e4390b15fc73756e816f4cd75aa9f5f5cc0bed1bc48b7c26"
+      "sha256": "8321d24df773a46eef407aa134440f216eb25fc397b8f75c932ffc683188bf8f"
     },
     {
       "file": "matrix-plugin.png",
+      "description": "Actual installed Matrix Skin 0.3.1 plugin detail with enabled switch and running component",
+      "source": "Unmodified CUA tab screenshot converted from JPEG to PNG",
       "width": 1440,
       "height": 1000,
-      "sha256": "de66063c991cdb5b19ab207ddcba55343570df2bb083ee8d8451d523647c73a5"
+      "sha256": "ed9eeaa68485d06f0b8ef439d8f41f4dc64e3a3ffcd7c5c3338827571d88f10f"
     },
     {
-      "file": "matrix-home.png",
+      "file": "native-chat.png",
+      "description": "Identical seeded conversation after the real plugin switch was disabled and the isolated runtime restarted",
+      "source": "Unmodified CUA tab screenshot converted from JPEG to PNG",
       "width": 1440,
       "height": 1000,
-      "sha256": "490b3495336a8926d851bd932d0b3c25849940ae4349b1db10ed1d92f2d56d7c"
+      "sha256": "ae1f81de770bc0ef6b0cbd966c21bdc5aaf0d8d085208de13132a8b1628ebadb"
     }
-  ]
+  ],
+  "validation": {
+    "actual_motion": "Distinct real source frames during active chat were confirmed to differ in the visible rain margins.",
+    "native_typography": "Observed native prose, code syntax colors, tables, model/effort popup, appearance settings, and unsent draft remained legible. No message was sent.",
+    "capture_cleanup": "The temporary 1440 × 1000 viewport override was reset, the agent-created demo tab was closed, and the isolated demo server was stopped."
+  },
+  "capture_cleanup": "The temporary 1440 × 1000 viewport override was reset, the agent-created demo tab was closed, and the isolated demo server was stopped."
 }

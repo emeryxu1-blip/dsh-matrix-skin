@@ -2,15 +2,15 @@
 
 English | [中文](README.zh.md)
 
-> A Matrix-inspired appearance that puts reading and everyday work first.
+> Session-powered Matrix code rain, with room to read.
 
-**DSH Matrix Skin** adds a quiet green accent and clear dark surfaces to the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI. Version **0.3.0** prioritizes readable text, distinct controls, and the native layout across chat, settings, plugins, menus, tools, and sidebars.
+**DSH Matrix Skin** brings animated, session-powered Matrix code rain to the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Desktop and Web UI. Version **0.3.1** restores the original rain renderer's motion, color, and intensity across conversations, typing, navigation, and settings, with content masks that keep text and controls clear.
 
-![Matrix Skin 0.3.0 in a real DSH conversation](docs/images/matrix-chat.png)
+![Animated session-powered Matrix code rain in the real DSH UI](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-rain.gif)
 
 **The Matrix look, built for everyday coding.** Independent community plugin · MIT · No plugin telemetry
 
-[Install in Desktop](#install-and-enable) · [Screenshots and demo](#screenshots-and-demo) · [Version 0.3.0](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.0)
+[Install in Desktop](#install-and-enable) · [Screenshots and demo](#screenshots-and-demo) · [Version 0.3.1](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.1)
 
 ## Install and enable
 
@@ -45,7 +45,9 @@ Installation enables the skin automatically. Open or hard-refresh the DSH Web UI
 - Native light appearance retained, with a restrained green accent
 - Native text and code fonts, font-size preferences, spacing, and disclosure controls
 - Existing syntax highlighting, diff colors, error/warning states, and terminal colors preserved
-- Quiet code rain confined to the empty-session hero, away from working content
+- The original rain renderer's falling characters, trails, glow, motion, color, and intensity
+- Rain continues during conversations, typing, navigation, and settings; masks protect working text and controls
+- Dark and native light appearances both retain visible code rain
 - No floating status HUD, scanline overlay, glowing text, or extra composer labels
 - Reduced-motion and forced-colors preferences hide decorative rain
 - Local-only processing with no telemetry or session-content upload
@@ -56,20 +58,20 @@ Installation enables the skin automatically. Open or hard-refresh the DSH Web UI
 
 These are genuine DeepSeek Harness `0.2.2-rc.3` Web UI captures on macOS, using an isolated demo profile with fictional content and the actual Matrix Skin plugin. Desktop `0.2.2-rc.3` was also inspected separately; these browser captures do not depict native desktop window chrome.
 
-| Native DSH (skin disabled) | Matrix Skin 0.3.0 |
+| Native DSH (skin disabled) | Matrix Skin 0.3.1 |
 | --- | --- |
-| ![Native DSH conversation](docs/images/native-chat.png) | ![Same conversation with Matrix Skin](docs/images/matrix-chat.png) |
+| ![Native DSH conversation](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/native-chat.png) | ![Same conversation with Matrix Skin](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-chat.png) |
 
-![Native appearance settings with Matrix Skin enabled](docs/images/matrix-settings.png)
+![Native appearance settings with Matrix Skin enabled](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-settings.png)
 
-[Watch the 25-second walkthrough](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.0/matrix-skin-demo.mp4). The video is a labeled walkthrough assembled from actual UI still captures. [Capture details](docs/images/capture-provenance.json).
+[Watch the 24.5-second code-rain recording](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.1/matrix-skin-demo.mp4). The animated preview and recording capture the actual running DSH Web UI with fictional demo content. [Capture details](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/capture-provenance.json).
 
 ## Requirements
 
 - DeepSeek Harness Desktop `0.2.2-rc.3` or the matching Web runtime
 - The `desktop` profile for the official app, or `web` for browser use
 
-Version `0.3.0` retains support for the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
+Version `0.3.1` retains support for the Desktop Session Controller and its separate navigation store, the current CSS-module class format, and native message-bubble markers. The legacy `0.1.0-rc.6`, `0.1.1-rc.2`, and `0.1.5-rc.1` Web contracts remain supported. It borrows the selected session without retaining it or opening history, and never installs an obsolete client runtime.
 
 ## Provider and plugin independence
 
@@ -86,7 +88,7 @@ Use DSH normally—no plugin configuration is required.
 3. Read and work normally; conversation text, menus, settings, files, previews, and terminals keep native behavior.
 4. Expand or collapse native **Think** rows as usual. Reasoning uses DSH’s font-size preferences and conversation scrolling.
 
-Decorative rain appears only in the empty-session hero and is hidden when reduced motion or forced colors is requested. It does not cover active conversations, menus, dialogs, settings, or sidebars. The bounded local text feed uses the official DSH README when no conversation text exists.
+Code rain stays active across normal use. The original rain renderer provides the motion, color, and intensity; content masks leave room for reading and interacting with DSH. Typing, opening a menu, or visiting settings does not turn it off. Reduced-motion and forced-colors preferences hide the decoration, and background pages pause it. The bounded local text feed uses the bundled official DSH README until selected-session text is available, including startup on Settings or Plugins.
 
 ## Verify
 

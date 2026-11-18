@@ -491,21 +491,77 @@ function installStyles() {
   return () => tag.remove();
 }
 
-// Native DSH supplies this phase only for a blank conversation. Decorations
-// belong inside that isolated frame, never above a page, pane, or popup.
-const MATRIX_HERO_SELECTOR = '[data-slot="main.conversation"] [data-phase="hero"]';
-const MATRIX_OVERLAY_SELECTOR = '[role="dialog"], [role="menu"], [role="listbox"], [data-trigger-menu], [popover]:popover-open';
+// Keep the original viewport rain visible across the application. Native work
+// surfaces are cut out of the decorative canvas so no glyph is painted on top
+// of a message, control, popup, document, terminal, or other readable text.
+const MATRIX_CONTENT_SURFACE_SELECTOR = [
+  '[data-chat-flow-kind="assistant-step"]', '[data-message-bubble]',
+  '[data-variant="think"]', '[data-composer-card]',
+  '[role="dialog"]', '[role="menu"]', '[role="listbox"]', '[data-trigger-menu]',
+  'pre', 'table', 'iframe', 'webview', '.xterm', '[data-document-preview]',
+].join(', ');
+const MATRIX_PROTECTED_SURFACE_SELECTOR = [
+  MATRIX_CONTENT_SURFACE_SELECTOR,
+  'button', 'a', 'input', 'textarea', 'select', '[contenteditable]',
+  '[role="button"]', '[role="tab"]', '[role="treeitem"]', '[role="switch"]',
+  '[role="checkbox"]', '[role="combobox"]', 'label', 'pre', 'table',
+  'iframe', 'webview', '.xterm', '[data-document-preview]',
+].join(', ');
+const MATRIX_PROTECTED_PADDING = 12;
+const MATRIX_PROTECTED_SURFACE_LIMIT = 512;
+const MATRIX_PROTECTED_TEXT_LIMIT = 1200;
+const MATRIX_PROTECTED_RECT_LIMIT = 2048;
 
-export function matrixDecorativeRoot(root) {
-  const hero = root?.querySelector?.(MATRIX_HERO_SELECTOR);
-  if (!hero || root.querySelector(MATRIX_OVERLAY_SELECTOR)) return undefined;
-  // DSH removes its placeholder when a draft contains text. Borrow that
-  // presentation marker without reading or changing the editor's value.
-  const composer = hero.querySelector('[data-composer-card]');
-  if (composer && !composer.querySelector('[data-composer-placeholder]')) return undefined;
-  const rightbar = root.querySelector('[data-slot="rightbar"]');
-  if (rightbar && !rightbar.closest('[data-rightbar-collapsed]')) return undefined;
-  return hero;
+export function matrixProtectedRects(root, width, height) {
+  const rects = [];
+  const protectedElements = new Set();
+  let inspectedRects = 0;
+  const remember = (rect) => {
+    if (++inspectedRects > MATRIX_PROTECTED_RECT_LIMIT) return false;
+    if (!rect || ![rect.left, rect.top, rect.right, rect.bottom].every(Number.isFinite)) return;
+    if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= width || rect.top >= height) return;
+    if (rect.right <= rect.left || rect.bottom <= rect.top) return;
+    const left = Math.max(0, rect.left - MATRIX_PROTECTED_PADDING);
+    const top = Math.max(0, rect.top - MATRIX_PROTECTED_PADDING);
+    const right = Math.min(width, rect.right + MATRIX_PROTECTED_PADDING);
+    const bottom = Math.min(height, rect.bottom + MATRIX_PROTECTED_PADDING);
+    rects.push({ left, top, width: right - left, height: bottom - top });
+    return true;
+  };
+  let surfaces = 0;
+  for (const selector of [MATRIX_CONTENT_SURFACE_SELECTOR, MATRIX_PROTECTED_SURFACE_SELECTOR]) {
+    for (const element of root?.querySelectorAll?.(selector) ?? []) {
+      if (protectedElements.has(element) || element.closest?.(`#${ENVIRONMENT_ID}`)) continue;
+      if (remember(element.getBoundingClientRect?.())) protectedElements.add(element);
+      if (++surfaces >= MATRIX_PROTECTED_SURFACE_LIMIT) break;
+    }
+    if (surfaces >= MATRIX_PROTECTED_SURFACE_LIMIT) break;
+  }
+  // Geometry alone is borrowed; text values are never copied for protection.
+  // This covers unlabelled native text and third-party plugin content too.
+  const doc = root?.ownerDocument ?? root;
+  const body = root?.body ?? root;
+  if (typeof doc?.createTreeWalker !== 'function' || typeof doc?.createRange !== 'function' || !body) return rects;
+  const walker = doc.createTreeWalker(body, 4); // NodeFilter.SHOW_TEXT
+  const range = doc.createRange();
+  let node;
+  let visited = 0;
+  try {
+    while ((node = walker.nextNode()) && visited++ < MATRIX_PROTECTED_TEXT_LIMIT) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest?.(`#${ENVIRONMENT_ID}, script, style, [aria-hidden="true"]`)) continue;
+      if (protectedElements.has(parent.closest?.(MATRIX_PROTECTED_SURFACE_SELECTOR))) continue;
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) {
+        remember(rect);
+        if (inspectedRects >= MATRIX_PROTECTED_RECT_LIMIT) break;
+      }
+      if (inspectedRects >= MATRIX_PROTECTED_RECT_LIMIT) break;
+    }
+  } finally {
+    range.detach?.();
+  }
+  return rects;
 }
 
 function installEnvironment() {
@@ -539,6 +595,8 @@ function installEnvironment() {
   let feedText = '';
   let feedGlyphs = [];
   let decorative = false;
+  let protectedRects = [];
+  let protectionDirty = true;
 
   const glyphAt = (index) => {
     if (!feedGlyphs.length) return '0';
@@ -556,10 +614,13 @@ function installEnvironment() {
     return true;
   };
   const setSources = (sources = {}) => {
-    updateFeed(composeMatrixText(sources));
+    const text = composeMatrixText(sources);
+    // A modern Session snapshot need not contain rendered conversation text.
+    // Keep rain alive with product-authored text while that surface is absent.
+    updateFeed(text || composeMatrixText({ blank: true }));
     const hasSessionText = ['thinking', 'reasoning', 'assistant', 'user']
       .some((key) => uniqueMatrixText(sources[key]).length > 0);
-    environment.dataset.matrixSource = hasSessionText ? 'session' : sources.blank !== false ? 'readme' : 'idle';
+    environment.dataset.matrixSource = hasSessionText ? 'session' : 'readme';
   };
   const setDisplayedSources = (sources = {}) => {
     const text = composeMatrixText({ ...sources, blank: false });
@@ -570,9 +631,8 @@ function installEnvironment() {
 
   const resize = () => {
     if (!context || !decorative) return;
-    const host = environment.parentElement;
-    const nextWidth = host?.clientWidth || window.innerWidth;
-    const nextHeight = host?.clientHeight || window.innerHeight;
+    const nextWidth = window.innerWidth;
+    const nextHeight = window.innerHeight;
     const nextRatio = Math.min(window.devicePixelRatio || 1, 2);
     const nextFontSize = nextWidth < 640 ? 13 : 16;
     const backingWidth = Math.max(1, Math.floor(nextWidth * nextRatio));
@@ -587,6 +647,7 @@ function installEnvironment() {
     fontSize = nextFontSize;
     canvas.width = backingWidth;
     canvas.height = backingHeight;
+    protectionDirty = true;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -622,10 +683,17 @@ function installEnvironment() {
         context.fillText(glyphAt(glyphIndex), column.x, y);
       }
     }
+    if (protectionDirty) {
+      protectedRects = matrixProtectedRects(document, width, height);
+      protectionDirty = false;
+    }
+    for (const rect of protectedRects) {
+      context.clearRect(rect.left, rect.top, rect.width, rect.height);
+    }
   };
 
   const animate = (time) => {
-    if (!decorative || document.hidden || reducedMotion.matches) {
+    if (!decorative || document.hidden || reducedMotion.matches || forcedColors.matches) {
       animationFrame = 0;
       return;
     }
@@ -647,13 +715,9 @@ function installEnvironment() {
   };
 
   const syncSurface = () => {
-    const hero = matrixDecorativeRoot(document);
-    const nextDecorative = Boolean(
-      hero && context && !document.hidden && !reducedMotion.matches && !forcedColors.matches
-      && document.body.hasAttribute('data-ds-dark-theme') && window.innerWidth > 640
-    );
-    const host = hero ?? document.body;
-    if (environment.parentElement !== host) host.appendChild(environment);
+    const nextDecorative = Boolean(context && !document.hidden && !reducedMotion.matches && !forcedColors.matches);
+    protectionDirty = true;
+    if (environment.parentElement !== document.body) document.body.appendChild(environment);
     if (environment.dataset.matrixDecorative !== String(nextDecorative)) {
       environment.dataset.matrixDecorative = String(nextDecorative);
     }
@@ -672,8 +736,10 @@ function installEnvironment() {
   const handleVisibility = () => syncSurface();
   const handleMotion = () => syncSurface();
   const handleResize = () => syncSurface();
+  const handleScroll = () => { protectionDirty = true; };
   window.addEventListener('resize', handleResize, { passive: true });
   document.addEventListener('visibilitychange', handleVisibility);
+  document.addEventListener('scroll', handleScroll, true);
   reducedMotion.addEventListener?.('change', handleMotion);
   forcedColors.addEventListener?.('change', handleMotion);
   setSources();
@@ -688,6 +754,7 @@ function installEnvironment() {
       cancelAnimationFrame(animationFrame);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('scroll', handleScroll, true);
       reducedMotion.removeEventListener?.('change', handleMotion);
       forcedColors.removeEventListener?.('change', handleMotion);
       environment.remove();
@@ -1015,16 +1082,17 @@ body.dsh-matrix-skin-active ::selection {
   background: var(--dsh-matrix-selection-bg);
 }
 
-/* JS mounts this only in DSH's isolated empty-session hero. No reading surface,
-   dialog, menu, sidebar, or composer can be painted over by decoration. */
+/* The original viewport renderer stays present during normal app use. Geometry
+   masks in JS keep its glyphs behind native content, without restyling it. */
 .dsh-matrix-environment {
   display: none;
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 2147483000;
   pointer-events: none;
   overflow: hidden;
   contain: strict;
+  opacity: 1;
 }
 .dsh-matrix-environment[data-matrix-decorative="true"] {
   display: block;
@@ -1034,14 +1102,25 @@ body.dsh-matrix-skin-active ::selection {
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: .09;
-  mask-image: linear-gradient(90deg, #000, transparent 25%, transparent 75%, #000);
-  -webkit-mask-image: linear-gradient(90deg, #000, transparent 25%, transparent 75%, #000);
+  opacity: .3;
+  filter: drop-shadow(0 0 5px rgba(65,255,137,.72));
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
 }
-body.dsh-matrix-skin-active:not([data-ds-dark-theme]) .dsh-matrix-environment {
-  display: none;
+/* Screen blending vanishes on white, so light appearance uses the same green
+   source with multiply blending while retaining native light surfaces. */
+body.dsh-matrix-skin-active:not([data-ds-dark-theme]) .dsh-matrix-rain {
+  mix-blend-mode: multiply;
 }
-@media (prefers-reduced-motion: reduce), (forced-colors: active), (max-width: 640px) {
+@media (max-width: 640px) {
+  .dsh-matrix-rain {
+    opacity: .24;
+    -webkit-mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
+    mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
+  }
+}
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .dsh-matrix-environment[data-matrix-decorative="true"] { display: none; }
 }
 @media (forced-colors: active) {

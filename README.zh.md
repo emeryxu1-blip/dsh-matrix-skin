@@ -2,15 +2,15 @@
 
 [English](README.md) | 中文
 
-> 保留 Matrix 风格，把阅读和日常工作放在首位。
+> 让会话化作 Matrix 代码雨，也留出清楚阅读的空间。
 
-**DSH Matrix Skin** 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 桌面和 Web 界面提供克制的绿色强调色与层次清楚的深色表面。**0.3.0** 优先保证聊天、设置、插件、菜单、工具和侧边栏中的文字清晰、控件可辨，并保留原生布局。
+**DSH Matrix Skin** 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 桌面和 Web 界面带来由会话内容驱动的动态 Matrix 代码雨。**0.3.1** 恢复原有渲染器的动效、颜色与强度，让代码雨在聊天、输入、导航和设置中持续播放，并通过内容遮罩保留清楚的文字与控件。
 
-![真实 DSH 对话中的 Matrix Skin 0.3.0](docs/images/matrix-chat.png)
+![真实 DSH 界面中由会话内容驱动的动态 Matrix 代码雨](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-rain.gif)
 
 **有 Matrix 氛围，也能认真写代码。** 独立社区插件 · MIT · 插件不含遥测
 
-[桌面安装](#安装并启用) · [截图与演示](#截图与演示) · [0.3.0 版本](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.0)
+[桌面安装](#安装并启用) · [截图与演示](#截图与演示) · [0.3.1 版本](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/tag/v0.3.1)
 
 ## 安装并启用
 
@@ -45,7 +45,9 @@ dsh web
 - 保留原生浅色外观，仅加入克制的绿色强调色
 - 保留原生文字和代码字体、字号偏好、间距与展开/收起操作
 - 保留语法高亮、差异颜色、错误/警告状态与终端颜色
-- 代码雨仅出现在空会话的欢迎区域，避开实际工作内容
+- 恢复原有代码雨渲染器的下落字符、拖尾、光晕、动效、颜色和强度
+- 聊天、输入、导航和设置时持续播放，通过内容遮罩保护阅读与操作区域
+- 深色与原生浅色外观中都保留可见的代码雨
 - 移除悬浮状态面板、扫描线、文字光晕和额外的输入框标签
 - 系统要求减少动态效果或使用强制颜色时，隐藏装饰性代码雨
 - 仅在本地处理，不包含遥测，也不会向外上传会话内容
@@ -56,20 +58,20 @@ dsh web
 
 以下为 macOS 上真实 DeepSeek Harness `0.2.2-rc.3` Web 界面的截图，使用隔离的演示 profile、虚构内容和实际运行的 Matrix Skin 插件。Desktop `0.2.2-rc.3` 也已单独检查；这些浏览器截图不展示原生桌面窗口外框。
 
-| 原生 DSH（皮肤停用） | Matrix Skin 0.3.0 |
+| 原生 DSH（皮肤停用） | Matrix Skin 0.3.1 |
 | --- | --- |
-| ![原生 DSH 对话](docs/images/native-chat.png) | ![启用 Matrix Skin 的同一对话](docs/images/matrix-chat.png) |
+| ![原生 DSH 对话](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/native-chat.png) | ![启用 Matrix Skin 的同一对话](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-chat.png) |
 
-![启用 Matrix Skin 后的原生外观设置](docs/images/matrix-settings.png)
+![启用 Matrix Skin 后的原生外观设置](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/matrix-settings.png)
 
-[观看 25 秒演示](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.0/matrix-skin-demo.mp4)。视频由真实界面的静态截图编排而成，并非连续屏幕录像。[截图说明](docs/images/capture-provenance.json)。
+[观看 24.5 秒代码雨实录](https://github.com/emeryxu1-blip/dsh-matrix-skin/releases/download/v0.3.1/matrix-skin-demo.mp4)。动态预览和录像来自实际运行中的 DSH Web 界面，使用虚构演示内容。[素材说明](https://raw.githubusercontent.com/emeryxu1-blip/dsh-matrix-skin/v0.3.1/docs/images/capture-provenance.json)。
 
 ## 环境要求
 
 - DeepSeek Harness Desktop `0.2.2-rc.3` 或对应版本的 Web 运行时
 - 官方桌面应用使用 `desktop` profile，浏览器版本使用 `web` profile
 
-`0.3.0` 继续支持桌面版 Session Controller、独立的导航状态、当前 CSS Modules 类名格式和原生消息气泡标记，同时保留旧版 `0.1.0-rc.6`、`0.1.1-rc.2`、`0.1.5-rc.1` 的 Web 合约兼容性。插件只借用当前会话，不额外保留会话或打开历史，也不会安装已废弃的 client runtime。
+`0.3.1` 继续支持桌面版 Session Controller、独立的导航状态、当前 CSS Modules 类名格式和原生消息气泡标记，同时保留旧版 `0.1.0-rc.6`、`0.1.1-rc.2`、`0.1.5-rc.1` 的 Web 合约兼容性。插件只借用当前会话，不额外保留会话或打开历史，也不会安装已废弃的 client runtime。
 
 ## 提供商与插件独立性
 
@@ -86,7 +88,7 @@ Matrix Skin 只改变外观。模型/提供商下拉菜单、Effort 选项、默
 3. 正常阅读和工作；对话、菜单、设置、文件、预览和终端保持原生行为。
 4. 像平时一样展开或收起 **Think** 行。Reasoning 遵循 DSH 的字号偏好，并随对话滚动。
 
-装饰性代码雨仅出现在空会话的欢迎区域；系统要求减少动态效果或使用强制颜色时，会隐藏代码雨。它不会覆盖已有对话、菜单、弹窗、设置或侧边栏。没有对话文本时，有界的本地文本源使用 DSH 官方 README。
+代码雨在日常使用中持续播放，由原有渲染器提供动效、颜色和强度，并用内容遮罩为阅读和操作留出空间。输入文字、打开菜单或进入设置不会关闭代码雨。系统要求减少动态效果或使用强制颜色时，会隐藏装饰动画；页面进入后台时暂停。当前会话文本尚不可用时，有界的本地文本源使用插件内置的 DSH 官方 README，包括直接从设置或插件页面启动的情况。
 
 ## 验证
 

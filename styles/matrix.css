@@ -95,16 +95,17 @@ body.dsh-matrix-skin-active ::selection {
   background: var(--dsh-matrix-selection-bg);
 }
 
-/* JS mounts this only in DSH's isolated empty-session hero. No reading surface,
-   dialog, menu, sidebar, or composer can be painted over by decoration. */
+/* The original viewport renderer stays present during normal app use. Geometry
+   masks in JS keep its glyphs behind native content, without restyling it. */
 .dsh-matrix-environment {
   display: none;
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 2147483000;
   pointer-events: none;
   overflow: hidden;
   contain: strict;
+  opacity: 1;
 }
 .dsh-matrix-environment[data-matrix-decorative="true"] {
   display: block;
@@ -114,14 +115,25 @@ body.dsh-matrix-skin-active ::selection {
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: .09;
-  mask-image: linear-gradient(90deg, #000, transparent 25%, transparent 75%, #000);
-  -webkit-mask-image: linear-gradient(90deg, #000, transparent 25%, transparent 75%, #000);
+  opacity: .3;
+  filter: drop-shadow(0 0 5px rgba(65,255,137,.72));
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%);
 }
-body.dsh-matrix-skin-active:not([data-ds-dark-theme]) .dsh-matrix-environment {
-  display: none;
+/* Screen blending vanishes on white, so light appearance uses the same green
+   source with multiply blending while retaining native light surfaces. */
+body.dsh-matrix-skin-active:not([data-ds-dark-theme]) .dsh-matrix-rain {
+  mix-blend-mode: multiply;
 }
-@media (prefers-reduced-motion: reduce), (forced-colors: active), (max-width: 640px) {
+@media (max-width: 640px) {
+  .dsh-matrix-rain {
+    opacity: .24;
+    -webkit-mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
+    mask-image: linear-gradient(90deg, #000, transparent 45%, transparent 55%, #000);
+  }
+}
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .dsh-matrix-environment[data-matrix-decorative="true"] { display: none; }
 }
 @media (forced-colors: active) {

@@ -159,26 +159,33 @@ test('syntax, terminal, diff, warning, and error semantics retain their native s
   }
 });
 
-test('decorative rain cannot overlay working surfaces or add synthetic UI labels', () => {
+test('viewport rain preserves its original appearance while native surfaces are protected', () => {
   const environment = ruleFor('.dsh-matrix-environment');
   assert.equal(environment.display, 'none');
-  assert.equal(environment.position, 'absolute');
-  assert.equal(environment['z-index'], '-1');
+  assert.equal(environment.position, 'fixed');
+  assert.equal(environment['z-index'], '2147483000');
   assert.equal(environment['pointer-events'], 'none');
   assert.equal(ruleFor('.dsh-matrix-environment[data-matrix-decorative="true"]').display, 'block');
   const rain = ruleFor('.dsh-matrix-rain');
-  assert.ok(Number(rain.opacity) <= .1, 'Rain must stay quieter than reading content');
-  assert.doesNotMatch(matrixCss, /text-shadow\s*:|drop-shadow\(|mix-blend-mode\s*:|content\s*:/);
+  assert.equal(rain.opacity, '.3');
+  assert.equal(rain.filter, 'drop-shadow(0 0 5px rgba(65,255,137,.72))');
+  assert.equal(rain['mix-blend-mode'], 'screen');
+  assert.equal(rain['mask-image'], 'linear-gradient(90deg, transparent 0 11%, #000 14%, rgba(0,0,0,.72) 27%, transparent 33% 69%, rgba(0,0,0,.7) 76%, #000 100%)');
+  assert.equal(ruleFor('body.dsh-matrix-skin-active:not([data-ds-dark-theme]) .dsh-matrix-rain')['mix-blend-mode'], 'multiply');
+  assert.doesNotMatch(matrixCss, /text-shadow\s*:|content\s*:/);
   assert.doesNotMatch(matrixCss, /dsh-matrix-hud|SECURE_INPUT_CHANNEL|COGNITION_STREAM/);
+  assert.match(clientSource, /context\.clearRect\(rect\.left, rect\.top, rect\.width, rect\.height\)/);
 });
 
-test('motion, forced-color, compact-screen, and print preferences hide decorative rain', () => {
-  for (const condition of ['prefers-reduced-motion: reduce', 'forced-colors: active', 'max-width: 640px', 'print']) {
+test('accessibility and print preferences pause rain while compact screens retain the original edge treatment', () => {
+  for (const condition of ['prefers-reduced-motion: reduce', 'forced-colors: active', 'print']) {
     assert.match(mediaBlock(condition), /\.dsh-matrix-environment[^{}]*\{[^}]*display:\s*none/,
       `${condition} must suppress decorative rain`);
   }
-  assert.match(mediaBlock('forced-colors: active'), /display:\s*none/);
-  assert.match(matrixCss, /@media\s*\(forced-colors: active\)\s*\{[\s\S]*?outline-color:\s*Highlight;/);
+  const compact = mediaBlock('max-width: 640px');
+  assert.match(compact, /opacity:\s*\.24/);
+  assert.match(compact, /mask-image:\s*linear-gradient\(90deg, #000, transparent 45%, transparent 55%, #000\)/);
+  assert.doesNotMatch(compact, /display:\s*none/);
 });
 
 test('preserves provider-supplied reasoning verbatim', () => {

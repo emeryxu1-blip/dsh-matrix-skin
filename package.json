@@ -1,7 +1,7 @@
 {
   "name": "dsh-matrix-skin",
-  "version": "0.3.0",
-  "description": "Readable Matrix-inspired appearance for DeepSeek Harness Desktop and Web, preserving native typography, controls, and content.",
+  "version": "0.3.1",
+  "description": "Session-powered Matrix code rain for DeepSeek Harness Desktop and Web, with readable native typography and controls.",
   "homepage": "https://github.com/emeryxu1-blip/dsh-matrix-skin#readme",
   "author": "Gavin Xu",
   "keywords": [
